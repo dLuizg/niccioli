@@ -1,4 +1,4 @@
-## Requisitos Funcionais (RF) – Sistema EnerSys
+## Requisitos Funcionais (RF) – Niccioli
 
 ### RF01 — Gestão de Acesso: 
 
