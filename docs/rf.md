@@ -1,25 +1,25 @@
-## Requisitos Funcionais (RF) – Niccioli
+## Requisitos Funcionais (RF) - Niccioli
 
-### RF01 — Gestão de Acesso: 
+### RF01 — Login e acesso social
+O sistema deve permitir que o usuário realize login com e-mail e senha ou por provedores externos.
 
-O sistema deve permitir login via e-mail/senha e integração com Provedores de Identidade (Google, Facebook e Apple).
+### RF02 — Check-in diário
+O sistema deve permitir que o aluno informe se utilizará o transporte na ida, na volta ou em ambos os trajetos.
 
-### RF02 — Recuperação de Conta: 
+### RF03 — Gestão de perfil e veículo
+O sistema deve permitir que o usuário edite seus dados cadastrais e, no caso do motorista, as informações do veículo.
 
-O sistema deve prover um fluxo de recuperação de senha via e-mail com token de segurança temporário.
+### RF04 — Solicitação de ponto alternativo
+O sistema deve permitir que o aluno solicite um ponto alternativo e que o motorista aprove ou negue a solicitação.
 
-### RF03 — Gerenciamento de Perfil: 
+### RF05 — Monitoramento e geofencing
+O sistema deve monitorar a rota do motorista e notificar o aluno quando o veículo estiver se aproximando do ponto.
 
-O usuário deve poder editar seus dados cadastrais, foto de perfil e preferências de notificação.
+### RF06 — Gestão financeira e contrato
+O sistema deve permitir que o motorista anexe contratos, que o aluno aceite os termos e que o status de pagamento seja controlado manualmente.
 
-### RF04 — Centro de Notificações: 
+### RF07 — Exclusão de conta
+O sistema deve permitir que o usuário solicite a exclusão da conta, respeitando a verificação de pendências antes da remoção dos dados.
 
-O sistema deve disparar alertas push e in-app lembrando de preencher se vai ou não, lembrança para assinar contrato, avisos sobre o transporte.
-
-### RF05 — Assistente de IA (Chatbot): 
-
-O sistema deve possuir uma interface de chat com IA capaz de interpretar comandos de voz/texto auxiliar o motorista sobre qual sequência deve buscar os alunos, quantidade de alunos, auxiliar a gestão.
-
-### RF06 — Exportação de Dados: 
-
-O sistema deve permitir a geração e download de relatórios de presença em formatos PDF (visual) e CSV (dados brutos).
+### RF08 — Assistente de IA para rota
+O sistema deve permitir que o motorista consulte um assistente de IA para obter a sequência de busca dos alunos confirmados.
