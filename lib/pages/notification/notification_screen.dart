@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:niccioli/views/widgets/notification_badge.dart';
+import 'package:niccioli/views/widgets/notification_card.dart';
+import 'package:niccioli/widgets/notification_button.dart';
+import 'package:niccioli/theme/app_colors.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,13 +34,13 @@ class _NotificacaoTelaState extends State<NotificacaoTela> {
       "id": "1",
       "title": "O motorista iniciou a rota!",
       "message": "Fique atento, logo o motorista estará na sua porta!",
-      "time": "Agora"
+      "time": "Agora",
     },
     {
       "id": "2",
       "title": "Ônibus aproximando",
       "message": "Faltam 5 minutos para o ponto.",
-      "time": "5 min"
+      "time": "5 min",
     },
   ];
 
@@ -52,9 +54,9 @@ class _NotificacaoTelaState extends State<NotificacaoTela> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 25, 1, 70),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 25, 1, 70),
+        backgroundColor: AppColors.background,
         elevation: 0,
         title: const Text(
           "Notificação",
@@ -63,33 +65,16 @@ class _NotificacaoTelaState extends State<NotificacaoTela> {
         // BOTÃO DE EXCLUIR TUDO NA APPBAR
         actions: [
           if (notificacoes.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.delete_sweep, color: Colors.white),
-              onPressed: () {
-                // Mostra um aviso antes de apagar tudo
-                showDialog(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text("Limpar tudo?"),
-                    content: const Text("Deseja apagar todas as notificações?"),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Não")),
-                      TextButton(
-                        onPressed: () {
-                          _excluirTodas();
-                          Navigator.pop(ctx);
-                        },
-                        child: const Text("Sim"),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+            BotaoLimparNotificacoes(onConfirmar: _excluirTodas),
         ],
       ),
       body: notificacoes.isEmpty
-          ? const Center(child: Text("Nenhuma notificação", style: TextStyle(color: Colors.white54)))
+          ? const Center(
+              child: Text(
+                "Nenhuma notificação",
+                style: TextStyle(color: Colors.white54),
+              ),
+            )
           : ListView.builder(
               padding: const EdgeInsets.only(top: 10),
               itemCount: notificacoes.length,
@@ -99,7 +84,8 @@ class _NotificacaoTelaState extends State<NotificacaoTela> {
                 // OPÇÃO DE EXCLUIR UMA POR UMA (ARRASTANDO)
                 return Dismissible(
                   key: Key(item['id']!), // Chave única para cada item
-                  direction: DismissDirection.endToStart, // Arrastar da direita para esquerda
+                  direction: DismissDirection
+                      .endToStart, // Arrastar da direita para esquerda
                   background: Container(
                     alignment: Alignment.centerRight,
                     padding: const EdgeInsets.only(right: 20),
