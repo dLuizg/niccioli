@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/home_aluno_screen.dart';
+import 'screens/blank_screen.dart';
 import 'theme/app_colors.dart';
 
 void main() {
@@ -22,7 +22,7 @@ class NiccioliApp extends StatelessWidget {
         scaffoldBackgroundColor: AppColors.background,
         fontFamily: 'Roboto',
       ),
-      home: const HomeAlunoScreen(),
+      home: const BlankScreen(),
     );
   }
 }
