@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../widgets/app_button.dart';
 
 enum HomeStatus { pending, confirmed, notRequested, timeLimit }
 
@@ -13,7 +14,11 @@ class HomeAlunoScreen extends StatefulWidget {
 class _HomeAlunoScreenState extends State<HomeAlunoScreen> {
   HomeStatus _status = HomeStatus.pending;
   bool _showCancelDialog = false;
-  int _selectedNavIndex = 0;
+
+  // Dados da van (virão do backend)
+  final String _vanName = 'Van na fazenda';
+  final int _boardedCount = 1;
+  final int _totalCount = 7;
 
   String get _greeting {
     final hour = DateTime.now().hour;
@@ -34,7 +39,7 @@ class _HomeAlunoScreenState extends State<HomeAlunoScreen> {
       case HomeStatus.pending:
         return _greetingSubtitle;
       case HomeStatus.confirmed:
-        return 'Confirmado';
+        return 'Faça seu check-in';
       case HomeStatus.notRequested:
         return 'Não solicitado';
       case HomeStatus.timeLimit:
@@ -84,7 +89,6 @@ class _HomeAlunoScreenState extends State<HomeAlunoScreen> {
       body: Stack(
         children: [
           SafeArea(
-            bottom: false,
             child: Column(
               children: [
                 _buildTopBar(now),
@@ -92,7 +96,6 @@ class _HomeAlunoScreenState extends State<HomeAlunoScreen> {
               ],
             ),
           ),
-          _buildBottomNav(bottomPadding),
           if (_showCancelDialog) _buildCancelOverlay(),
         ],
       ),
@@ -147,11 +150,7 @@ class _HomeAlunoScreenState extends State<HomeAlunoScreen> {
 
   Widget _buildBody(double bottomPadding) {
     return Padding(
-      padding: EdgeInsets.only(
-        left: 32,
-        right: 32,
-        bottom: 80 + bottomPadding,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Column(
         children: [
           const Spacer(flex: 2),
@@ -207,29 +206,104 @@ class _HomeAlunoScreenState extends State<HomeAlunoScreen> {
           ),
         ),
         const SizedBox(height: 20),
-        Row(
-          children: [
-            Expanded(
-              child: _outlinedButton(
-                label: 'CONFIRMAR',
-                onPressed: _onConfirm,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _outlinedButton(
-                label: 'NÃO VOU',
-                onPressed: _onNotGoing,
-              ),
-            ),
-          ],
+        AppDualOutlinedButton(
+          label1: 'CONFIRMAR',
+          onPressed1: _onConfirm,
+          label2: 'NÃO VOU',
+          onPressed2: _onNotGoing,
         ),
       ],
     );
   }
 
   Widget _buildConfirmedContent() {
-    return _outlinedButton(label: 'CANCELAR', onPressed: _onCancelTap);
+    final vanFull = _boardedCount == _totalCount;
+
+    return Column(
+      children: [
+        Text(
+          _vanName,
+          style: const TextStyle(
+            color: AppColors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildCounterBadge(),
+        const SizedBox(height: 24),
+        if (!vanFull) ...[
+          const Text(
+            'Aguarde a chegada da van no\nseu local de embarque',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.white,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 20),
+          _outlinedButton(label: 'Já Fui Liberado(a)', onPressed: () {}),
+        ] else ...[
+          const Text(
+            'Você está na van?',
+            style: TextStyle(
+              color: AppColors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 20),
+          _outlinedButton(label: 'SIM, ESTOU', onPressed: () {}),
+        ],
+        const SizedBox(height: 16),
+        TextButton(
+          onPressed: () {},
+          child: const Text(
+            'Não vou voltar',
+            style: TextStyle(
+              color: AppColors.white,
+              decoration: TextDecoration.underline,
+              decorationColor: AppColors.white,
+              fontSize: 13,
+            ),
+          ),
+        ),
+        TextButton(
+          onPressed: () {},
+          child: const Text(
+            'Vou pegar a van em outro lugar',
+            style: TextStyle(
+              color: AppColors.white,
+              decoration: TextDecoration.underline,
+              decorationColor: AppColors.white,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCounterBadge() {
+    final current = _boardedCount.toString().padLeft(2, '0');
+    final total = _totalCount.toString().padLeft(2, '0');
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: AppColors.orange, width: 1.5),
+      ),
+      child: Text(
+        '$current/$total',
+        style: const TextStyle(
+          color: AppColors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1,
+        ),
+      ),
+    );
   }
 
   Widget _buildNotRequestedContent() {
@@ -352,93 +426,4 @@ class _HomeAlunoScreenState extends State<HomeAlunoScreen> {
     );
   }
 
-  Widget _buildBottomNav(double bottomPadding) {
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: Container(
-        height: 80 + bottomPadding,
-        padding: EdgeInsets.only(bottom: bottomPadding),
-        decoration: BoxDecoration(
-          color: AppColors.navBackground,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 10,
-              offset: const Offset(0, -3),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _navItem(icon: Icons.home_rounded, label: 'Home', index: 0),
-            _navItem(icon: Icons.people_outline, label: 'Contrato', index: 1),
-            _navCenterButton(),
-            _navItem(
-              icon: Icons.account_balance_wallet_outlined,
-              label: 'Financeiro',
-              index: 3,
-            ),
-            _navItem(icon: Icons.person_outline, label: 'Perfil', index: 4),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _navItem({
-    required IconData icon,
-    required String label,
-    required int index,
-  }) {
-    final isActive = _selectedNavIndex == index;
-    final color = isActive ? AppColors.orange : AppColors.inactiveIcon;
-
-    return GestureDetector(
-      onTap: () => setState(() => _selectedNavIndex = index),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 10,
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _navCenterButton() {
-    return GestureDetector(
-      onTap: () => setState(() => _selectedNavIndex = 2),
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: AppColors.orange,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.orange.withOpacity(0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: const Icon(
-          Icons.eco_rounded,
-          color: AppColors.white,
-          size: 26,
-        ),
-      ),
-    );
-  }
 }
