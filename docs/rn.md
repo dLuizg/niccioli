@@ -18,9 +18,6 @@
 * **Exclusão de Dados:** Ao solicitar a exclusão definitiva (RNF06), o sistema deve anonimizar os dados em relatórios históricos (CSV/PDF) para manter a integridade financeira do administrador, mas remover qualquer identificação pessoal (Nome, CPF, Telefone) do banco de dados ativo.
 * **Retenção de Logs:** Os logs de presença (RNF09) devem ser armazenados por no mínimo 6 meses para fins de prestação de contas, sendo apagados automaticamente após esse período, salvo disposição contrária em contrato.
 
-### RN05 — Funcionamento Offline
-* **Sincronização de Dados:** Caso o motorista registre uma presença ou alteração em modo offline (RNF08), o sistema deve realizar o "merge" (sincronização) dos dados assim que detectar uma conexão estável, priorizando sempre a marcação mais recente com timestamp.
-
-### RN06 — Controle de passageiros
+### RN05 — Controle de passageiros
 * **Liberação de retorno:** Os alunos só poderão fazer checkin na van na saída da faculdade caso tenho dado retorno positivo sobre o retorno dentro do aplicativo.
 * **Autorização para retorno:** O motorista só poderá dar início ao retorno para a cidade de origem após a aula com a presença de todos os alunos ou após dez minutos após o horário do término da aula.

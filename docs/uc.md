@@ -48,12 +48,12 @@
 ## UC04 — Solicitar Ponto Alternativo
 **Ator Principal:** Aluno / **Ator Secundário:** Motorista
 **Objetivo:** Permitir que o aluno peça para ser pego fora do ponto padrão.
-**Pré-condições:** Existir uma rota ativa para o dia.
+**Pré-condições:** Existir um ponto previamente validado.
 
 **Fluxo Principal:**
 1. O aluno seleciona a opção "Ponto Alternativo" e envia a localização.
 2. O motorista recebe uma notificação na próxima parada.
-3. O motorista visualiza o ponto no mapa e seleciona **"Aprovar"** ou **"Negar"**.
+3. O motorista visualiza o ponto no mapa.
 4. O aluno é notificado da decisão.
 
 ---
@@ -109,11 +109,22 @@
 
 ---
 
-### O que foi corrigido aqui?
-1.  **Eliminação da Entidade "Van":** Agora é apenas um campo no perfil do motorista (UC03).
-2.  **Poder de Veto:** O motorista agora decide sobre o ponto alternativo (UC04).
-3.  **Trava de Segurança:** A exclusão de conta respeita a regra de quitação (UC07).
-4.  **Automação:** Substituímos o registro manual de atraso pelo **Geofencing** (UC05), que é muito mais preciso e seguro para quem dirige.
-5.  **Validação Manual:** O fluxo financeiro reflete a realidade de que o motorista olha o extrato e dá "baixa" no app (UC06).
+## UC09 — Informar Paradeiro da Van
+**Ator Principal:** Motorista
+**Objetivo:** Informar aos alunos onde a van está.
+**Pré-condições:** Alunos esperando a van para ir embora
 
-Deseja que eu gere os diagramas ou prossiga para a definição das tabelas do Banco de Dados?
+**Fluxo Principal:**
+1. O motorista informa para onde está indo: Fazenda --> Unifeob ou Unifeob --> Unifae.
+2. Os alunos recebem uma notificação informando sobre o paradeiro do motorista para se dirigirem a van.
+3. O sistema só autoriza o motorista partir de determinado ponto quanto os alunos desse ponto  estiverem na van.
+
+## UC10 — Pegar a Van em Ponto Diferente na Saída
+**Ator Principal:** Aluno
+**Objetivo:** Informar que entrará na van em outro lugar, o aluno só poderá pegar a van em pontos que ela ainda passará. Ex: Aluno da fazenda pode pegar na Unifeob ou na Fae; alguém da Unifeob, só pode pegar na Unifae...
+**Pré-condições:** Van não ter passado pelo pondo determinado.
+
+**Fluxo Principal:**
+1. Dependendo de onde o motorista está, a função de alterar entrada fica disponível.
+2. Os alunos recebem uma notificação informando sobre o paradeiro do motorista para se dirigirem a van.
+3. O sistema só autoriza o motorista partir de determinado ponto quanto os alunos desse ponto estiverem na van.
