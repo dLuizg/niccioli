@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/blank_screen.dart';
+import 'navigation/role_navigation_shell.dart';
 import 'theme/app_colors.dart';
 
 void main() {
@@ -22,7 +22,7 @@ class NiccioliApp extends StatelessWidget {
         scaffoldBackgroundColor: AppColors.background,
         fontFamily: 'Roboto',
       ),
-      home: const BlankScreen(),
+      home: const RoleNavigationShell(role: AppUserRole.aluno),
     );
   }
 }

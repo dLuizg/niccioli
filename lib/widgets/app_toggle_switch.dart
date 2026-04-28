@@ -36,8 +36,8 @@ class AppToggleSwitch extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(13),
           color: value
-              ? AppColors.orange.withOpacity(0.25)
-              : AppColors.inactiveIcon.withOpacity(0.2),
+              ? AppColors.orange.withValues(alpha: 0.25)
+              : AppColors.inactiveIcon.withValues(alpha: 0.2),
           border: Border.all(
             color: value ? AppColors.orange : AppColors.inactiveIcon,
             width: 1.5,
