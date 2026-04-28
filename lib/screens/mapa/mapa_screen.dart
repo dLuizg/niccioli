@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:niccioli/pages/notification/notification_screen.dart';
+import 'package:niccioli/screens/notification/notification_screen.dart';
 import 'package:niccioli/views/widgets/data_badge.dart';
 import 'package:niccioli/views/widgets/notification_badge.dart';
 import 'package:niccioli/theme/app_colors.dart';
