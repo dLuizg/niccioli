@@ -19,99 +19,78 @@ class _CadastroScreenState extends State<CadastroScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.navBackground,
+      backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 12, bottom: 10),
-                    child: Text(
-                      'CADASTRO CPF/PJ',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.48),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 24,
                     ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 22,
-                      ),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            const _CadastroBrandHeader(),
-                            const SizedBox(height: 22),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 420),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const _CadastroBrandHeader(),
+                          const SizedBox(height: 22),
+                          AppDropdownField<String>(
+                            value: _perfilSelecionado,
+                            hintText: 'Selecione se voce e Aluno/Motorista',
+                            items: const ['Aluno', 'Motorista'],
+                            onChanged: (value) {
+                              setState(() {
+                                _perfilSelecionado = value;
+                                if (value != 'Aluno') {
+                                  _universidadeSelecionada = null;
+                                }
+                              });
+                            },
+                          ),
+                          if (_isAluno) ...[
+                            const SizedBox(height: 12),
                             AppDropdownField<String>(
-                              value: _perfilSelecionado,
-                              hintText: 'Selecione se voce e Aluno/Motorista',
-                              items: const ['Aluno', 'Motorista'],
+                              value: _universidadeSelecionada,
+                              hintText: 'Selecione sua universidade',
+                              items: const ['UNIFEOB', 'UNIFAE'],
                               onChanged: (value) {
                                 setState(() {
-                                  _perfilSelecionado = value;
-                                  if (value != 'Aluno') {
-                                    _universidadeSelecionada = null;
-                                  }
+                                  _universidadeSelecionada = value;
                                 });
                               },
                             ),
-                            if (_isAluno) ...[
-                              const SizedBox(height: 12),
-                              AppDropdownField<String>(
-                                value: _universidadeSelecionada,
-                                hintText: 'Selecione sua universidade',
-                                items: const ['UNIFEOB', 'UNIFAE'],
-                                onChanged: (value) {
-                                  setState(() {
-                                    _universidadeSelecionada = value;
-                                  });
-                                },
-                              ),
-                            ],
-                            const SizedBox(height: 14),
-                            const AppTextField(hintText: 'Nome Completo'),
-                            const SizedBox(height: 12),
-                            const AppTextField(hintText: 'E-mail'),
-                            const SizedBox(height: 12),
-                            const AppTextField(hintText: 'CPF ou CNPJ'),
-                            const SizedBox(height: 12),
-                            const AppTextField(
-                              hintText: 'Digite sua senha',
-                              obscureText: true,
-                            ),
-                            const SizedBox(height: 12),
-                            const AppTextField(
-                              hintText: 'Repita sua senha...',
-                              obscureText: true,
-                            ),
-                            const SizedBox(height: 24),
-                            AppFilledButton(
-                              label: 'Cadastrar',
-                              onPressed: () {},
-                            ),
                           ],
-                        ),
+                          const SizedBox(height: 14),
+                          const AppTextField(hintText: 'Nome Completo'),
+                          const SizedBox(height: 12),
+                          const AppTextField(hintText: 'E-mail'),
+                          const SizedBox(height: 12),
+                          const AppTextField(hintText: 'CPF ou CNPJ'),
+                          const SizedBox(height: 12),
+                          const AppTextField(
+                            hintText: 'Digite sua senha',
+                            obscureText: true,
+                          ),
+                          const SizedBox(height: 12),
+                          const AppTextField(
+                            hintText: 'Repita sua senha...',
+                            obscureText: true,
+                          ),
+                          const SizedBox(height: 24),
+                          AppFilledButton(label: 'Cadastrar', onPressed: () {}),
+                        ],
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );

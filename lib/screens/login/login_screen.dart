@@ -9,10 +9,7 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _AuthScaffold(
-      title: 'LOGIN',
-      child: _LoginCard(),
-    );
+    return const _AuthScaffold(child: _LoginCard());
   }
 }
 
@@ -21,110 +18,87 @@ class _LoginCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const _BrandHeader(
-            logoHeight: 118,
-            logoWidth: 160,
-            titleSize: 30,
-            subtitleSize: 15,
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const _BrandHeader(
+          logoHeight: 118,
+          logoWidth: 160,
+          titleSize: 30,
+          subtitleSize: 15,
+        ),
+        const SizedBox(height: 34),
+        const AppTextField(hintText: 'Digite seu e-mail...'),
+        const SizedBox(height: 16),
+        const AppTextField(hintText: 'Digite sua senha...', obscureText: true),
+        const SizedBox(height: 34),
+        AppFilledButton(label: 'Entrar', onPressed: () {}),
+        const SizedBox(height: 14),
+        AppOutlinedButton(
+          label: 'Cadastrar',
+          onPressed: () {
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const CadastroScreen()));
+          },
+        ),
+        const SizedBox(height: 38),
+        Text(
+          'Entre com outras plataformas',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.55),
+            fontSize: 12,
           ),
-          const SizedBox(height: 34),
-          const AppTextField(hintText: 'Digite seu e-mail...'),
-          const SizedBox(height: 16),
-          const AppTextField(
-            hintText: 'Digite sua senha...',
-            obscureText: true,
-          ),
-          const SizedBox(height: 34),
-          AppFilledButton(label: 'Entrar', onPressed: () {}),
-          const SizedBox(height: 14),
-          AppOutlinedButton(
-            label: 'Cadastrar',
-            onPressed: () {
-              Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const CadastroScreen()));
-            },
-          ),
-          const SizedBox(height: 38),
-          Text(
-            'Entre com outras plataformas',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.55),
-              fontSize: 12,
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 10),
-            width: 138,
-            height: 1,
-            color: Colors.white.withValues(alpha: 0.25),
-          ),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _SocialIcon(icon: Icons.apple),
-              SizedBox(width: 16),
-              _GoogleBadge(),
-            ],
-          ),
-        ],
-      ),
+        ),
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 10),
+          width: 138,
+          height: 1,
+          color: Colors.white.withValues(alpha: 0.25),
+        ),
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _SocialIcon(icon: Icons.apple),
+            SizedBox(width: 16),
+            _GoogleBadge(),
+          ],
+        ),
+      ],
     );
   }
 }
 
 class _AuthScaffold extends StatelessWidget {
-  const _AuthScaffold({required this.title, required this.child});
+  const _AuthScaffold({required this.child});
 
-  final String title;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.navBackground,
+      backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 12, bottom: 10),
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.48),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 24,
                     ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 28,
-                      ),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 420),
                       child: child,
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
