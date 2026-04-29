@@ -8,4 +8,5 @@ class AppColors {
   static const Color inactiveIcon = Color(0xFF6B7A99);
   static const Color dialogOrange = Color(0xFFEFA500);
   static const Color textDark = Color(0xFF0D1B31);
+  static const Color textHint = Color.fromARGB(255, 98, 107, 124);
 }

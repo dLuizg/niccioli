@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:niccioli/screens/login/cadastro_screen.dart';
 import 'package:niccioli/theme/app_colors.dart';
 import 'package:niccioli/widgets/app_button.dart';
+import 'package:niccioli/widgets/app_input_field.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -31,26 +32,21 @@ class _LoginCard extends StatelessWidget {
             subtitleSize: 15,
           ),
           const SizedBox(height: 34),
-          const _AuthTextField(
-            hintText: 'Digite seu e-mail...',
-          ),
+          const AppTextField(hintText: 'Digite seu e-mail...'),
           const SizedBox(height: 16),
-          const _AuthTextField(
+          const AppTextField(
             hintText: 'Digite sua senha...',
             obscureText: true,
           ),
           const SizedBox(height: 34),
-          AppFilledButton(
-            label: 'Entrar',
-            onPressed: () {},
-          ),
+          AppFilledButton(label: 'Entrar', onPressed: () {}),
           const SizedBox(height: 14),
           AppOutlinedButton(
             label: 'Cadastrar',
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CadastroScreen()),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const CadastroScreen()));
             },
           ),
           const SizedBox(height: 38),
@@ -70,9 +66,7 @@ class _LoginCard extends StatelessWidget {
           const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _SocialIcon(
-                icon: Icons.apple,
-              ),
+              _SocialIcon(icon: Icons.apple),
               SizedBox(width: 16),
               _GoogleBadge(),
             ],
@@ -84,10 +78,7 @@ class _LoginCard extends StatelessWidget {
 }
 
 class _AuthScaffold extends StatelessWidget {
-  const _AuthScaffold({
-    required this.title,
-    required this.child,
-  });
+  const _AuthScaffold({required this.title, required this.child});
 
   final String title;
   final Widget child;
@@ -163,9 +154,7 @@ class _BrandHeader extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.16),
-            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -211,45 +200,8 @@ class _BrandHeader extends StatelessWidget {
   }
 }
 
-class _AuthTextField extends StatelessWidget {
-  const _AuthTextField({
-    required this.hintText,
-    this.obscureText = false,
-  });
-
-  final String hintText;
-  final bool obscureText;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      obscureText: obscureText,
-      style: const TextStyle(color: AppColors.textDark),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: TextStyle(
-          color: Colors.black.withValues(alpha: 0.26),
-          fontSize: 16,
-        ),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.9),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 18,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide.none,
-        ),
-      ),
-    );
-  }
-}
-
 class _SocialIcon extends StatelessWidget {
-  const _SocialIcon({
-    required this.icon,
-  });
+  const _SocialIcon({required this.icon});
 
   final IconData icon;
 
@@ -262,11 +214,7 @@ class _SocialIcon extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white.withValues(alpha: 0.75)),
       ),
-      child: Icon(
-        icon,
-        size: 18,
-        color: AppColors.white,
-      ),
+      child: Icon(icon, size: 18, color: AppColors.white),
     );
   }
 }

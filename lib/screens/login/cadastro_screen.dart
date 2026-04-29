@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:niccioli/theme/app_colors.dart';
 import 'package:niccioli/widgets/app_button.dart';
+import 'package:niccioli/widgets/app_input_field.dart';
 
 class CadastroScreen extends StatefulWidget {
   const CadastroScreen({super.key});
@@ -55,7 +56,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                           children: [
                             const _CadastroBrandHeader(),
                             const SizedBox(height: 22),
-                            _AuthDropdownField(
+                            AppDropdownField<String>(
                               value: _perfilSelecionado,
                               hintText: 'Selecione se voce e Aluno/Motorista',
                               items: const ['Aluno', 'Motorista'],
@@ -70,13 +71,10 @@ class _CadastroScreenState extends State<CadastroScreen> {
                             ),
                             if (_isAluno) ...[
                               const SizedBox(height: 12),
-                              _AuthDropdownField(
+                              AppDropdownField<String>(
                                 value: _universidadeSelecionada,
                                 hintText: 'Selecione sua universidade',
-                                items: const [
-                                  'UNIFEOB',
-                                  'UNIFAE',
-                                ],
+                                items: const ['UNIFEOB', 'UNIFAE'],
                                 onChanged: (value) {
                                   setState(() {
                                     _universidadeSelecionada = value;
@@ -85,18 +83,18 @@ class _CadastroScreenState extends State<CadastroScreen> {
                               ),
                             ],
                             const SizedBox(height: 14),
-                            const _AuthTextField(hintText: 'Nome Completo'),
+                            const AppTextField(hintText: 'Nome Completo'),
                             const SizedBox(height: 12),
-                            const _AuthTextField(hintText: 'E-mail'),
+                            const AppTextField(hintText: 'E-mail'),
                             const SizedBox(height: 12),
-                            const _AuthTextField(hintText: 'CPF ou CNPJ'),
+                            const AppTextField(hintText: 'CPF ou CNPJ'),
                             const SizedBox(height: 12),
-                            const _AuthTextField(
+                            const AppTextField(
                               hintText: 'Digite sua senha',
                               obscureText: true,
                             ),
                             const SizedBox(height: 12),
-                            const _AuthTextField(
+                            const AppTextField(
                               hintText: 'Repita sua senha...',
                               obscureText: true,
                             ),
@@ -133,9 +131,7 @@ class _CadastroBrandHeader extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.16),
-            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -177,97 +173,6 @@ class _CadastroBrandHeader extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _AuthTextField extends StatelessWidget {
-  const _AuthTextField({
-    required this.hintText,
-    this.obscureText = false,
-  });
-
-  final String hintText;
-  final bool obscureText;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      obscureText: obscureText,
-      style: const TextStyle(color: AppColors.textDark),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: TextStyle(
-          color: Colors.black.withValues(alpha: 0.22),
-          fontSize: 16,
-        ),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.9),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 18,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide.none,
-        ),
-      ),
-    );
-  }
-}
-
-class _AuthDropdownField extends StatelessWidget {
-  const _AuthDropdownField({
-    required this.value,
-    required this.hintText,
-    required this.items,
-    required this.onChanged,
-  });
-
-  final String? value;
-  final String hintText;
-  final List<String> items;
-  final ValueChanged<String?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      icon: const Icon(
-        Icons.arrow_drop_down,
-        color: Colors.black,
-      ),
-      dropdownColor: Colors.white,
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: TextStyle(
-          color: Colors.black.withValues(alpha: 0.55),
-          fontSize: 14,
-        ),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.9),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 8,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide.none,
-        ),
-      ),
-      style: const TextStyle(
-        color: AppColors.textDark,
-        fontSize: 14,
-      ),
-      items: items
-          .map(
-            (item) => DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
-            ),
-          )
-          .toList(),
-      onChanged: onChanged,
     );
   }
 }
