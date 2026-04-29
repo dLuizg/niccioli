@@ -13,6 +13,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
   String? _perfilSelecionado;
   String? _universidadeSelecionada;
 
+  bool get _isAluno => _perfilSelecionado == 'Aluno';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,23 +62,28 @@ class _CadastroScreenState extends State<CadastroScreen> {
                               onChanged: (value) {
                                 setState(() {
                                   _perfilSelecionado = value;
+                                  if (value != 'Aluno') {
+                                    _universidadeSelecionada = null;
+                                  }
                                 });
                               },
                             ),
-                            const SizedBox(height: 12),
-                            _AuthDropdownField(
-                              value: _universidadeSelecionada,
-                              hintText: 'Selecione sua universidade',
-                              items: const [
-                                'UNIFEOB',
-                                'UNIFAE',
-                              ],
-                              onChanged: (value) {
-                                setState(() {
-                                  _universidadeSelecionada = value;
-                                });
-                              },
-                            ),
+                            if (_isAluno) ...[
+                              const SizedBox(height: 12),
+                              _AuthDropdownField(
+                                value: _universidadeSelecionada,
+                                hintText: 'Selecione sua universidade',
+                                items: const [
+                                  'UNIFEOB',
+                                  'UNIFAE',
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    _universidadeSelecionada = value;
+                                  });
+                                },
+                              ),
+                            ],
                             const SizedBox(height: 14),
                             const _AuthTextField(hintText: 'Nome Completo'),
                             const SizedBox(height: 12),
@@ -93,13 +100,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
                               hintText: 'Repita sua senha...',
                               obscureText: true,
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 24),
                             AppFilledButton(
-                              label: 'Entrar',
-                              onPressed: () {},
-                            ),
-                            const SizedBox(height: 12),
-                            AppOutlinedButton(
                               label: 'Cadastrar',
                               onPressed: () {},
                             ),
