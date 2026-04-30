@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'screens/splash_screen/splash_screen.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'screens/home_aluno/home_aluno_antes.dart';
 import 'theme/app_colors.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('pt_BR', null);
   runApp(const NiccioliApp());
 }
 
@@ -22,7 +25,7 @@ class NiccioliApp extends StatelessWidget {
         scaffoldBackgroundColor: AppColors.background,
         fontFamily: 'Roboto',
       ),
-      home: const SplashScreen(),
+      home: const HomeAlunoAntes(),
     );
   }
 }
