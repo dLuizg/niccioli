@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:niccioli/screens/IA/chat_screen.dart';
 import 'screens/splash_screen/splash_screen.dart';
 import 'theme/app_colors.dart';
 
-void main() {
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('pt_BR', null);
   runApp(const NiccioliApp());
 }
 
@@ -22,7 +27,7 @@ class NiccioliApp extends StatelessWidget {
         scaffoldBackgroundColor: AppColors.background,
         fontFamily: 'Roboto',
       ),
-      home: const SplashScreen(),
+      home: const ChatScreen(), // <-- troca SplashScreen por ChatScreen
     );
   }
 }
