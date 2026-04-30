@@ -1,0 +1,205 @@
+// financeiro_screen.dart
+
+import 'package:flutter/material.dart';
+import 'package:niccioli/theme/app_colors.dart';
+import 'package:niccioli/views/widgets/data_badge.dart';
+import 'package:niccioli/views/widgets/notification_badge.dart';
+import 'package:niccioli/views/widgets/status_badge.dart';
+import 'package:niccioli/screens/notification/notification_screen.dart';
+import 'package:niccioli/widgets/app_bottom_nav.dart';
+
+// --- Model ---
+
+class Parcela {
+  final String data;
+  final String nome;
+  final double valor;
+  final StatusBadgeType status; // <-- deve ser StatusBadgeType, não StatusParcela
+
+  const Parcela({
+    required this.data,
+    required this.nome,
+    required this.valor,
+    required this.status,
+  });
+}
+
+// --- Screen ---
+
+class FinanceiroScreen extends StatefulWidget {
+  const FinanceiroScreen({super.key});
+
+  @override
+  State<FinanceiroScreen> createState() => _FinanceiroScreenState();
+}
+
+class _FinanceiroScreenState extends State<FinanceiroScreen> {
+  StatusBadgeType? _filtroAtivo;
+
+  final List<Parcela> _parcelas = const [
+    Parcela(data: '20/03/2026', nome: 'Niccioli Viagens e Turismos', valor: 399.99, status: StatusBadgeType.vencido),
+    Parcela(data: '20/03/2026', nome: 'Niccioli Viagens e Turismos', valor: 399.99, status: StatusBadgeType.aVencer),
+    Parcela(data: '20/03/2026', nome: 'Niccioli Viagens e Turismos', valor: 399.99, status: StatusBadgeType.aVencer),
+    Parcela(data: '20/03/2026', nome: 'Niccioli Viagens e Turismos', valor: 399.99, status: StatusBadgeType.pago),
+    Parcela(data: '20/03/2026', nome: 'Niccioli Viagens e Turismos', valor: 399.99, status: StatusBadgeType.pago),
+  ];
+
+  List<Parcela> get _parcelasFiltradas => _filtroAtivo == null
+      ? _parcelas
+      : _parcelas.where((p) => p.status == _filtroAtivo).toList();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        title: const Text(
+          "Financeiro",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        actions: [
+          NotificationBadge(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const NotificacaoTela()),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: Column(
+        children: [
+          const SizedBox(height: 12),
+          _FiltroBar(
+            filtroAtivo: _filtroAtivo,
+            onFiltroChanged: (status) => setState(() => _filtroAtivo = status),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemCount: _parcelasFiltradas.length,
+              separatorBuilder: (_, __) =>
+                  Divider(color: Colors.white.withOpacity(0.08), height: 1),
+              itemBuilder: (_, index) =>
+                  _ParcelaItem(parcela: _parcelasFiltradas[index]),
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: AppBottomNav(selectedIndex: 3, onItemTapped: (_) {}),
+    );
+  }
+}
+
+// --- Filter Bar ---
+
+class _FiltroBar extends StatelessWidget {
+  final StatusBadgeType? filtroAtivo;
+  final ValueChanged<StatusBadgeType?> onFiltroChanged;
+
+  const _FiltroBar({required this.filtroAtivo, required this.onFiltroChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          _FiltroChip(label: 'Todos', ativo: filtroAtivo == null, onTap: () => onFiltroChanged(null)),
+          const SizedBox(width: 8),
+          _FiltroChip(label: 'Vencidos', ativo: filtroAtivo == StatusBadgeType.vencido, onTap: () => onFiltroChanged(StatusBadgeType.vencido)),
+          const SizedBox(width: 8),
+          _FiltroChip(label: 'A Vencer', ativo: filtroAtivo == StatusBadgeType.aVencer, onTap: () => onFiltroChanged(StatusBadgeType.aVencer)),
+          const SizedBox(width: 8),
+          _FiltroChip(label: 'Pagos', ativo: filtroAtivo == StatusBadgeType.pago, onTap: () => onFiltroChanged(StatusBadgeType.pago)),
+        ],
+      ),
+    );
+  }
+}
+
+class _FiltroChip extends StatelessWidget {
+  final String label;
+  final bool ativo;
+  final VoidCallback onTap;
+
+  const _FiltroChip({required this.label, required this.ativo, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          color: ativo ? const Color(0xFFD4A017) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: ativo ? const Color(0xFFD4A017) : Colors.white24,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: ativo ? Colors.black : Colors.white70,
+            fontWeight: ativo ? FontWeight.bold : FontWeight.normal,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// --- Parcela Item ---
+
+class _ParcelaItem extends StatelessWidget {
+  final Parcela parcela;
+
+  const _ParcelaItem({required this.parcela});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  parcela.data,
+                  style: const TextStyle(color: Colors.white38, fontSize: 11),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  parcela.nome,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'R\$ ${parcela.valor.toStringAsFixed(2).replaceAll('.', ',')}',
+                  style: const TextStyle(color: Colors.white54, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          StatusBadge(status: parcela.status),
+        ],
+      ),
+    );
+  }
+}

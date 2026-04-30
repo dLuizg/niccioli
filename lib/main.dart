@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:niccioli/screens/financeiro/financeiro_screen.dart';
+import 'package:niccioli/screens/mapa/mapa_screen.dart';
 import 'screens/splash_screen/splash_screen.dart';
 import 'theme/app_colors.dart';
 
@@ -22,7 +24,7 @@ class NiccioliApp extends StatelessWidget {
         scaffoldBackgroundColor: AppColors.background,
         fontFamily: 'Roboto',
       ),
-      home: const SplashScreen(),
+      home: const FinanceiroScreen(),
     );
   }
 }
