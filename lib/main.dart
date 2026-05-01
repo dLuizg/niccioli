@@ -1,7 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'firebase_options.dart';
-import 'screens/home_aluno_screen.dart';
+import 'screens/splash_screen/splash_screen.dart';
 import 'theme/app_colors.dart';
 
 Future<void> main() async {
@@ -28,7 +28,7 @@ class NiccioliApp extends StatelessWidget {
         scaffoldBackgroundColor: AppColors.background,
         fontFamily: 'Roboto',
       ),
-      home: const HomeAlunoScreen(),
+      home: const SplashScreen(),
     );
   }
 }

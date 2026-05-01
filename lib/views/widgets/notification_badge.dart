@@ -1,41 +1,40 @@
+// widgets/notification_badge.dart
 import 'package:flutter/material.dart';
 
-class NotificationCard extends StatelessWidget {
-  final String title, message, time;
-  final IconData icon;
-  final Color iconColor;
+class NotificationBadge extends StatelessWidget {
+  final VoidCallback? onPressed;
 
-  const NotificationCard({
-    super.key,
-    required this.title,
-    required this.message,
-    required this.time,
-    required this.icon,
-    required this.iconColor,
-  });
+  const NotificationBadge({super.key, this.onPressed});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: Icon(icon, color: iconColor),
-        title: Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+    return GestureDetector(
+      onTap: onPressed,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white24, width: 1.5),
+            ),
+            child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 20),
           ),
-        ),
-        subtitle: Text(message, style: const TextStyle(color: Colors.white70)),
-        trailing: Text(
-          time,
-          style: const TextStyle(color: Colors.white38, fontSize: 12),
-        ),
+          Positioned(
+            top: -2,
+            right: -2,
+            child: Container(
+              width: 10,
+              height: 10,
+              decoration: const BoxDecoration(
+                color: Colors.orange,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
