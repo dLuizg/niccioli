@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
-import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/van/contador_badge.dart';
 import '../../views/widgets/data_badge.dart';
 
@@ -54,9 +53,6 @@ class _HomeAlunoState extends State<HomeAluno> {
 
   // Ponto alternativo selecionado no dialog de volta
   String _pontoSelecionado = '';
-
-  // Índice da aba ativa na bottom nav
-  int _navIndex = 0;
 
   // Dados da van — alimentados pelo sistema de contador do projeto
   final String _localVan = 'Van na Fazenda';
@@ -140,10 +136,6 @@ class _HomeAlunoState extends State<HomeAluno> {
               _estadoDepois == _EstadoDepois.confirmandoOutroPonto)
             _buildDialogConfirmacao(),
         ],
-      ),
-      bottomNavigationBar: AppBottomNav(
-        selectedIndex: _navIndex,
-        onItemTapped: (i) => setState(() => _navIndex = i),
       ),
     );
   }
