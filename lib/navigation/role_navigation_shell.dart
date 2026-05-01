@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:niccioli/screens/perfil/profile_screen.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_bottom_nav.dart';
 
@@ -67,7 +68,7 @@ class _RoleNavigationShellState extends State<RoleNavigationShell> {
         screen: _PlaceholderTabScreen(title: 'Financeiro'),
       ),
       const _NavigationDestinationData(
-        screen: _PlaceholderTabScreen(title: 'Perfil'),
+        screen: ProfileScreen(),
       ),
     ];
   }
