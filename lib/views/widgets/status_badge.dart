@@ -7,11 +7,14 @@ enum StatusBadgeType {
   cancelado,
   pendente,
   assinado,
+  emAberto,
 }
 
 extension StatusBadgeTypeStyle on StatusBadgeType {
   String get label {
     switch (this) {
+      case StatusBadgeType.emAberto:
+        return 'Em Aberto';
       case StatusBadgeType.vencido:
         return 'Vencidos';
       case StatusBadgeType.aVencer:
@@ -38,6 +41,8 @@ extension StatusBadgeTypeStyle on StatusBadgeType {
       case StatusBadgeType.pago:
       case StatusBadgeType.assinado:
         return const Color(0xFF42E21E);
+      case StatusBadgeType.emAberto:
+        return const Color.fromARGB(255, 255, 255, 255);
     }
   }
 
@@ -52,6 +57,8 @@ extension StatusBadgeTypeStyle on StatusBadgeType {
       case StatusBadgeType.pago:
       case StatusBadgeType.assinado:
         return const Color(0xFF1D5E52);
+      case StatusBadgeType.emAberto:
+        return const Color.fromARGB(255, 0, 174, 255);
     }
   }
 }

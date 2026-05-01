@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:niccioli/theme/app_colors.dart';
-import 'package:niccioli/views/widgets/data_badge.dart';
 import 'package:niccioli/views/widgets/notification_badge.dart';
 import 'package:niccioli/views/widgets/status_badge.dart';
 import 'package:niccioli/screens/notification/notification_screen.dart';
@@ -14,14 +13,43 @@ class Parcela {
   final String data;
   final String nome;
   final double valor;
-  final StatusBadgeType status; // <-- deve ser StatusBadgeType, não StatusParcela
+  final bool pago;
 
   const Parcela({
     required this.data,
     required this.nome,
     required this.valor,
-    required this.status,
+    this.pago = false,
   });
+
+  StatusBadgeType get status => _calcularStatus(data, pago: pago);
+
+  static StatusBadgeType _calcularStatus(String data, {bool pago = false}) {
+    if (pago) return StatusBadgeType.pago;
+
+    final partes = data.split('/');
+    final mes = int.parse(partes[1]);
+    final ano = int.parse(partes[2]);
+
+    final hoje = DateTime.now();
+    final mesAtual = DateTime(hoje.year, hoje.month);
+    final mesVencimento = DateTime(ano, mes);
+
+    // Calcula mês seguinte sem overflow
+    final mesSeguinte = hoje.month == 12
+        ? DateTime(hoje.year + 1, 1)
+        : DateTime(hoje.year, hoje.month + 1);
+
+    debugPrint(
+      'data=$data | venc=$mesVencimento | atual=$mesAtual | seguinte=$mesSeguinte',
+    );
+
+    if (mesVencimento == mesSeguinte) return StatusBadgeType.emAberto;
+    if (mesVencimento == mesAtual) return StatusBadgeType.aVencer;
+    if (mesVencimento.isBefore(mesAtual)) return StatusBadgeType.vencido;
+
+    return StatusBadgeType.emAberto;
+  }
 }
 
 // --- Screen ---
@@ -37,13 +65,34 @@ class _FinanceiroScreenState extends State<FinanceiroScreen> {
   StatusBadgeType? _filtroAtivo;
 
   final List<Parcela> _parcelas = const [
-    Parcela(data: '20/03/2026', nome: 'Niccioli Viagens e Turismos', valor: 399.99, status: StatusBadgeType.vencido),
-    Parcela(data: '20/03/2026', nome: 'Niccioli Viagens e Turismos', valor: 399.99, status: StatusBadgeType.aVencer),
-    Parcela(data: '20/03/2026', nome: 'Niccioli Viagens e Turismos', valor: 399.99, status: StatusBadgeType.aVencer),
-    Parcela(data: '20/03/2026', nome: 'Niccioli Viagens e Turismos', valor: 399.99, status: StatusBadgeType.pago),
-    Parcela(data: '20/03/2026', nome: 'Niccioli Viagens e Turismos', valor: 399.99, status: StatusBadgeType.pago),
+    Parcela(
+      data: '10/06/2026', // mês seguinte → emAberto
+      nome: 'Niccioli Viagens e Turismos',
+      valor: 399.99,
+    ),
+    Parcela(
+      data: '15/05/2026', // mês atual → aVencer
+      nome: 'Niccioli Viagens e Turismos',
+      valor: 399.99,
+    ),
+    Parcela(
+      data: '20/03/2026', // mês passado, não pago → vencido
+      nome: 'Niccioli Viagens e Turismos',
+      valor: 399.99,
+    ),
+    Parcela(
+      data: '20/03/2026', // mês passado, pago → pago
+      nome: 'Niccioli Viagens e Turismos',
+      valor: 399.99,
+      pago: true,
+    ),
+    Parcela(
+      data: '10/05/2026', // mês atual, pago → pago
+      nome: 'Niccioli Viagens e Turismos',
+      valor: 199.99,
+      pago: true,
+    ),
   ];
-
   List<Parcela> get _parcelasFiltradas => _filtroAtivo == null
       ? _parcelas
       : _parcelas.where((p) => p.status == _filtroAtivo).toList();
@@ -56,7 +105,7 @@ class _FinanceiroScreenState extends State<FinanceiroScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         title: const Text(
-          "Financeiro",
+          'Consultar Boletos',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -78,14 +127,26 @@ class _FinanceiroScreenState extends State<FinanceiroScreen> {
           ),
           const SizedBox(height: 8),
           Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              itemCount: _parcelasFiltradas.length,
-              separatorBuilder: (_, __) =>
-                  Divider(color: Colors.white.withOpacity(0.08), height: 1),
-              itemBuilder: (_, index) =>
-                  _ParcelaItem(parcela: _parcelasFiltradas[index]),
-            ),
+            child: _parcelasFiltradas.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Nenhum boleto encontrado.',
+                      style: TextStyle(color: Colors.white38),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    itemCount: _parcelasFiltradas.length,
+                    separatorBuilder: (_, __) => Divider(
+                      color: Colors.white.withOpacity(0.08),
+                      height: 1,
+                    ),
+                    itemBuilder: (_, index) =>
+                        _ParcelaItem(parcela: _parcelasFiltradas[index]),
+                  ),
           ),
         ],
       ),
@@ -109,13 +170,35 @@ class _FiltroBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          _FiltroChip(label: 'Todos', ativo: filtroAtivo == null, onTap: () => onFiltroChanged(null)),
+          _FiltroChip(
+            label: 'Todos',
+            ativo: filtroAtivo == null,
+            onTap: () => onFiltroChanged(null),
+          ),
           const SizedBox(width: 8),
-          _FiltroChip(label: 'Vencidos', ativo: filtroAtivo == StatusBadgeType.vencido, onTap: () => onFiltroChanged(StatusBadgeType.vencido)),
+          _FiltroChip(
+            label: 'Em Aberto',
+            ativo: filtroAtivo == StatusBadgeType.emAberto,
+            onTap: () => onFiltroChanged(StatusBadgeType.emAberto),
+          ),
           const SizedBox(width: 8),
-          _FiltroChip(label: 'A Vencer', ativo: filtroAtivo == StatusBadgeType.aVencer, onTap: () => onFiltroChanged(StatusBadgeType.aVencer)),
+          _FiltroChip(
+            label: 'A Vencer',
+            ativo: filtroAtivo == StatusBadgeType.aVencer,
+            onTap: () => onFiltroChanged(StatusBadgeType.aVencer),
+          ),
           const SizedBox(width: 8),
-          _FiltroChip(label: 'Pagos', ativo: filtroAtivo == StatusBadgeType.pago, onTap: () => onFiltroChanged(StatusBadgeType.pago)),
+          _FiltroChip(
+            label: 'Vencidos',
+            ativo: filtroAtivo == StatusBadgeType.vencido,
+            onTap: () => onFiltroChanged(StatusBadgeType.vencido),
+          ),
+          const SizedBox(width: 8),
+          _FiltroChip(
+            label: 'Pagos',
+            ativo: filtroAtivo == StatusBadgeType.pago,
+            onTap: () => onFiltroChanged(StatusBadgeType.pago),
+          ),
         ],
       ),
     );
@@ -127,7 +210,11 @@ class _FiltroChip extends StatelessWidget {
   final bool ativo;
   final VoidCallback onTap;
 
-  const _FiltroChip({required this.label, required this.ativo, required this.onTap});
+  const _FiltroChip({
+    required this.label,
+    required this.ativo,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
