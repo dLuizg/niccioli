@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-import '../screens/financeiro/financeiro_screen.dart';
-import '../screens/home_aluno/home_aluno.dart';
-import '../screens/mapa/mapa_screen.dart';
 import '../theme/app_colors.dart';
-import '../widgets/app_bottom_nav.dart';
 
 enum AppUserRole { aluno, motorista }
 
@@ -44,9 +40,10 @@ class _RoleNavigationShellState extends State<RoleNavigationShell> {
         index: _selectedIndex,
         children: _destinations.map((item) => item.screen).toList(),
       ),
-      bottomNavigationBar: AppBottomNav(
+      bottomNavigationBar: _RoleFooterNavigation(
         selectedIndex: _selectedIndex,
-        onItemTapped: (index) => setState(() => _selectedIndex = index),
+        destinations: _destinations,
+        onSelected: (index) => setState(() => _selectedIndex = index),
       ),
     );
   }
@@ -56,23 +53,184 @@ class _RoleNavigationShellState extends State<RoleNavigationShell> {
 
     return [
       _NavigationDestinationData(
+        label: 'Home',
+        icon: Icons.home_outlined,
+        activeIcon: Icons.home,
         screen: role == AppUserRole.aluno
-            ? const HomeAluno()
+            ? const _PlaceholderTabScreen(title: 'Home Aluno')
             : const _PlaceholderTabScreen(title: 'Home Motorista'),
       ),
       _NavigationDestinationData(
+        label: secondTabLabel,
+        icon: role == AppUserRole.aluno
+            ? Icons.description_outlined
+            : Icons.format_list_bulleted_outlined,
+        activeIcon: role == AppUserRole.aluno
+            ? Icons.description
+            : Icons.format_list_bulleted,
         screen: _PlaceholderTabScreen(title: secondTabLabel),
       ),
       const _NavigationDestinationData(
-        screen: HomeScreen(),
+        label: 'Mapa',
+        icon: Icons.location_on_outlined,
+        activeIcon: Icons.location_on,
+        isPrimaryAction: true,
+        screen: _PlaceholderTabScreen(title: 'Mapa'),
       ),
       const _NavigationDestinationData(
-        screen: FinanceiroScreen(),
+        label: 'Financeiro',
+        icon: Icons.credit_card_outlined,
+        activeIcon: Icons.credit_card,
+        screen: _PlaceholderTabScreen(title: 'Financeiro'),
       ),
       const _NavigationDestinationData(
+        label: 'Perfil',
+        icon: Icons.person_outline,
+        activeIcon: Icons.person,
         screen: _PlaceholderTabScreen(title: 'Perfil'),
       ),
     ];
+  }
+}
+
+class _RoleFooterNavigation extends StatelessWidget {
+  const _RoleFooterNavigation({
+    required this.selectedIndex,
+    required this.destinations,
+    required this.onSelected,
+  });
+
+  final int selectedIndex;
+  final List<_NavigationDestinationData> destinations;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(color: AppColors.navBackground),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 86,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var index = 0; index < destinations.length; index++)
+                  Expanded(
+                    child: destinations[index].isPrimaryAction
+                        ? _PrimaryNavigationItem(
+                            item: destinations[index],
+                            selected: selectedIndex == index,
+                            onTap: () => onSelected(index),
+                          )
+                        : _FooterNavigationItem(
+                            item: destinations[index],
+                            selected: selectedIndex == index,
+                            onTap: () => onSelected(index),
+                          ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FooterNavigationItem extends StatelessWidget {
+  const _FooterNavigationItem({
+    required this.item,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _NavigationDestinationData item;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? AppColors.orange : AppColors.inactiveIcon;
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: item.label,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: SizedBox(
+          height: 68,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                selected ? item.activeIcon : item.icon,
+                color: color,
+                size: 26,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                item.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  letterSpacing: 0,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PrimaryNavigationItem extends StatelessWidget {
+  const _PrimaryNavigationItem({
+    required this.item,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _NavigationDestinationData item;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: item.label,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: AppColors.orange,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.white, width: 1),
+            ),
+            child: Icon(
+              selected ? item.activeIcon : item.icon,
+              color: AppColors.white,
+              size: 25,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -104,7 +262,17 @@ class _PlaceholderTabScreen extends StatelessWidget {
 }
 
 class _NavigationDestinationData {
-  const _NavigationDestinationData({required this.screen});
+  const _NavigationDestinationData({
+    required this.label,
+    required this.icon,
+    required this.activeIcon,
+    required this.screen,
+    this.isPrimaryAction = false,
+  });
 
+  final String label;
+  final IconData icon;
+  final IconData activeIcon;
   final Widget screen;
+  final bool isPrimaryAction;
 }
