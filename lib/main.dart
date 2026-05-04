@@ -1,8 +1,16 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'navigation/role_navigation_shell.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:niccioli/screens/splash_screen/splash_screen.dart';
+import 'firebase_options.dart';
 import 'theme/app_colors.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('pt_BR', null);
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const NiccioliApp());
 }
 
@@ -22,7 +30,7 @@ class NiccioliApp extends StatelessWidget {
         scaffoldBackgroundColor: AppColors.background,
         fontFamily: 'Roboto',
       ),
-      home: const RoleNavigationShell(role: AppUserRole.aluno),
+      home: const SplashScreen(),
     );
   }
 }
