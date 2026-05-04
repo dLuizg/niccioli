@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../screens/financeiro/financeiro_screen.dart';
+import '../screens/home_aluno/home_aluno.dart';
+import '../screens/mapa/mapa_screen.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_bottom_nav.dart';
 
@@ -54,17 +57,17 @@ class _RoleNavigationShellState extends State<RoleNavigationShell> {
     return [
       _NavigationDestinationData(
         screen: role == AppUserRole.aluno
-            ? const _PlaceholderTabScreen(title: 'Home Aluno')
+            ? const HomeAluno()
             : const _PlaceholderTabScreen(title: 'Home Motorista'),
       ),
       _NavigationDestinationData(
         screen: _PlaceholderTabScreen(title: secondTabLabel),
       ),
       const _NavigationDestinationData(
-        screen: _PlaceholderTabScreen(title: 'Mapa'),
+        screen: HomeScreen(),
       ),
       const _NavigationDestinationData(
-        screen: _PlaceholderTabScreen(title: 'Financeiro'),
+        screen: FinanceiroScreen(),
       ),
       const _NavigationDestinationData(
         screen: _PlaceholderTabScreen(title: 'Perfil'),

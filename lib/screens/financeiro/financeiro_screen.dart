@@ -5,7 +5,6 @@ import 'package:niccioli/theme/app_colors.dart';
 import 'package:niccioli/views/widgets/notification_badge.dart';
 import 'package:niccioli/views/widgets/status_badge.dart';
 import 'package:niccioli/screens/notification/notification_screen.dart';
-import 'package:niccioli/widgets/app_bottom_nav.dart';
 
 // --- Model ---
 
@@ -140,8 +139,8 @@ class _FinanceiroScreenState extends State<FinanceiroScreen> {
                       vertical: 8,
                     ),
                     itemCount: _parcelasFiltradas.length,
-                    separatorBuilder: (_, __) => Divider(
-                      color: Colors.white.withOpacity(0.08),
+                    separatorBuilder: (context, index) => Divider(
+                      color: Colors.white.withValues(alpha: 0.08),
                       height: 1,
                     ),
                     itemBuilder: (_, index) =>
@@ -150,7 +149,6 @@ class _FinanceiroScreenState extends State<FinanceiroScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: AppBottomNav(selectedIndex: 3, onItemTapped: (_) {}),
     );
   }
 }
