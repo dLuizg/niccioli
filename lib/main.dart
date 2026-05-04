@@ -35,7 +35,7 @@ class NiccioliApp extends StatelessWidget {
         scaffoldBackgroundColor: AppColors.background,
         fontFamily: 'Roboto',
       ),
-      home: const HomeAluno(),
+      home: const SplashScreen(),
     );
   }
 }
