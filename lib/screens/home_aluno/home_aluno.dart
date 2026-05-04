@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:niccioli/screens/notification/notification_screen.dart';
+import 'package:niccioli/views/widgets/notification_badge.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
-import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/van/contador_badge.dart';
 import '../../views/widgets/data_badge.dart';
 
@@ -54,9 +55,6 @@ class _HomeAlunoState extends State<HomeAluno> {
 
   // Ponto alternativo selecionado no dialog de volta
   String _pontoSelecionado = '';
-
-  // Índice da aba ativa na bottom nav
-  int _navIndex = 0;
 
   // Dados da van — alimentados pelo sistema de contador do projeto
   final String _localVan = 'Van na Fazenda';
@@ -141,10 +139,6 @@ class _HomeAlunoState extends State<HomeAluno> {
             _buildDialogConfirmacao(),
         ],
       ),
-      bottomNavigationBar: AppBottomNav(
-        selectedIndex: _navIndex,
-        onItemTapped: (i) => setState(() => _navIndex = i),
-      ),
     );
   }
 
@@ -162,7 +156,14 @@ class _HomeAlunoState extends State<HomeAluno> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const CabecalhoData(),
-                _buildNotificationBell(),
+                NotificationBadge(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const NotificacaoTela(),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -178,25 +179,6 @@ class _HomeAlunoState extends State<HomeAluno> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildNotificationBell() {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: AppColors.white.withValues(alpha: 0.7),
-          width: 1.5,
-        ),
-      ),
-      child: const Icon(
-        Icons.notifications_outlined,
-        color: AppColors.white,
-        size: 22,
       ),
     );
   }
