@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:niccioli/screens/perfil/profile_detail_layout.dart';
 import 'package:niccioli/theme/app_colors.dart';
+import 'package:niccioli/widgets/app_input_field_dark.dart';
 
 class SecurityScreen extends StatelessWidget {
   const SecurityScreen({super.key});
@@ -24,9 +25,18 @@ class SecurityScreen extends StatelessWidget {
             ),
           ),
           SizedBox(height: 72),
-          _PasswordTile(hintText: 'Digite a senha atual...'),
-          _PasswordTile(hintText: 'Digite a nova senha...'),
-          _PasswordTile(hintText: 'Confirme a nova senha...'),
+          AppInputFieldDark(
+            hintText: 'Digite a senha atual...',
+            obscureText: true,
+          ),
+          AppInputFieldDark(
+            hintText: 'Digite a nova senha...',
+            obscureText: true,
+          ),
+          AppInputFieldDark(
+            hintText: 'Confirme a nova senha...',
+            obscureText: true,
+          ),
           SizedBox(height: 42),
           Center(child: _ConfirmButton()),
           SizedBox(height: 46),
@@ -43,32 +53,6 @@ class SecurityScreen extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PasswordTile extends StatelessWidget {
-  const _PasswordTile({required this.hintText});
-
-  final String hintText;
-
-  @override
-  Widget build(BuildContext context) {
-    return ProfileDarkTile(
-      leading: Icon(
-        Icons.key_outlined,
-        color: AppColors.white.withValues(alpha: 0.72),
-        size: 17,
-      ),
-      height: 45,
-      child: Text(
-        hintText,
-        style: TextStyle(
-          color: AppColors.white.withValues(alpha: 0.45),
-          fontSize: 10,
-          fontWeight: FontWeight.w500,
-        ),
       ),
     );
   }
