@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'screens/home_aluno/home_aluno.dart';
+import 'navigation/aluno_shell.dart';
 import 'theme/app_colors.dart';
 
 void main() async {
@@ -25,7 +25,7 @@ class NiccioliApp extends StatelessWidget {
         scaffoldBackgroundColor: AppColors.background,
         fontFamily: 'Roboto',
       ),
-      home: const HomeAluno(),
+      home: const AlunoShell(),
     );
   }
 }
