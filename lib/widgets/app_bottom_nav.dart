@@ -13,7 +13,6 @@ class AppBottomNav extends StatelessWidget {
   final ValueChanged<int> onItemTapped;
 
   static const _activeColor = Color(0xFFFFA600);
-  static const _inactiveColor = Color(0xFF676D75);
   static const _bgColor = Color(0xFF091525);
 
   @override
