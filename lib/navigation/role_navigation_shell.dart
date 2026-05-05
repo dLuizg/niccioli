@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../screens/contrato_aluno/contrato_aluno.dart';
 import '../screens/financeiro/financeiro_screen.dart';
 import '../screens/home_aluno/home_aluno.dart';
 import '../screens/mapa/mapa_screen.dart';
@@ -47,6 +48,9 @@ class _RoleNavigationShellState extends State<RoleNavigationShell> {
       bottomNavigationBar: AppBottomNav(
         selectedIndex: _selectedIndex,
         onItemTapped: (index) => setState(() => _selectedIndex = index),
+        secondItemLabel: widget.role == AppUserRole.aluno
+            ? 'Contrato'
+            : 'Lista',
       ),
     );
   }
@@ -61,7 +65,9 @@ class _RoleNavigationShellState extends State<RoleNavigationShell> {
             : const _PlaceholderTabScreen(title: 'Home Motorista'),
       ),
       _NavigationDestinationData(
-        screen: _PlaceholderTabScreen(title: secondTabLabel),
+        screen: role == AppUserRole.aluno
+            ? const ContratoAluno()
+            : _PlaceholderTabScreen(title: secondTabLabel),
       ),
       const _NavigationDestinationData(
         screen: HomeScreen(),
