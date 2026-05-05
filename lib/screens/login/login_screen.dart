@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:niccioli/navigation/role_navigation_shell.dart';
 import 'package:niccioli/screens/login/cadastro_screen.dart';
 import 'package:niccioli/theme/app_colors.dart';
+import 'package:niccioli/widgets/app_brand_logo.dart';
 import 'package:niccioli/widgets/app_button.dart';
 import 'package:niccioli/widgets/app_input_field.dart';
 
@@ -22,12 +23,7 @@ class _LoginCard extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const _BrandHeader(
-          logoHeight: 118,
-          logoWidth: 160,
-          titleSize: 30,
-          subtitleSize: 15,
-        ),
+        const AppBrandLogo(width: 270, height: 210),
         const SizedBox(height: 34),
         const AppTextField(hintText: 'Digite seu e-mail...'),
         const SizedBox(height: 16),
@@ -112,75 +108,6 @@ class _AuthScaffold extends StatelessWidget {
           },
         ),
       ),
-    );
-  }
-}
-
-class _BrandHeader extends StatelessWidget {
-  const _BrandHeader({
-    required this.logoWidth,
-    required this.logoHeight,
-    required this.titleSize,
-    required this.subtitleSize,
-  });
-
-  final double logoWidth;
-  final double logoHeight;
-  final double titleSize;
-  final double subtitleSize;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: logoWidth,
-          height: logoHeight,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.image_outlined,
-                color: Colors.white.withValues(alpha: 0.9),
-                size: logoHeight * 0.28,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Logo',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  fontSize: logoHeight * 0.12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 14),
-        Text(
-          'NICCIOLI',
-          style: TextStyle(
-            color: AppColors.white,
-            fontSize: titleSize,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0.4,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          'Viagens e Turismo',
-          style: TextStyle(
-            color: AppColors.orange,
-            fontSize: subtitleSize,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
     );
   }
 }
