@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:niccioli/navigation/role_navigation_shell.dart';
 import 'package:niccioli/screens/login/cadastro_screen.dart';
 import 'package:niccioli/theme/app_colors.dart';
 import 'package:niccioli/widgets/app_button.dart';
@@ -32,7 +33,17 @@ class _LoginCard extends StatelessWidget {
         const SizedBox(height: 16),
         const AppTextField(hintText: 'Digite sua senha...', obscureText: true),
         const SizedBox(height: 34),
-        AppFilledButton(label: 'Entrar', onPressed: () {}),
+        AppFilledButton(
+          label: 'Entrar',
+          onPressed: () {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) =>
+                    const RoleNavigationShell(role: AppUserRole.aluno),
+              ),
+            );
+          },
+        ),
         const SizedBox(height: 14),
         AppOutlinedButton(
           label: 'Cadastrar',

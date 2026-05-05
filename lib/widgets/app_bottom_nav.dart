@@ -7,13 +7,14 @@ class AppBottomNav extends StatelessWidget {
     super.key,
     required this.selectedIndex,
     required this.onItemTapped,
+    this.secondItemLabel = 'Contrato',
   });
 
   final int selectedIndex;
   final ValueChanged<int> onItemTapped;
+  final String secondItemLabel;
 
   static const _activeColor = Color(0xFFFFA600);
-  static const _inactiveColor = Color(0xFF676D75);
   static const _bgColor = Color(0xFF091525);
 
   @override
@@ -39,7 +40,7 @@ class AppBottomNav extends StatelessWidget {
               ),
               _NavItem(
                 icon: Icons.groups_outlined,
-                label: 'Contrato',
+                label: secondItemLabel,
                 index: 1,
                 selectedIndex: selectedIndex,
                 onTap: onItemTapped,
