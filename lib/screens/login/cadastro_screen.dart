@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:niccioli/models/app_user_profile.dart';
+import 'package:niccioli/navigation/role_navigation_shell.dart';
+import 'package:niccioli/screens/login/cadastro_view_model.dart';
+import 'package:niccioli/services/auth_service.dart';
 import 'package:niccioli/theme/app_colors.dart';
 import 'package:niccioli/widgets/app_button.dart';
 import 'package:niccioli/widgets/app_input_field.dart';
@@ -11,10 +15,56 @@ class CadastroScreen extends StatefulWidget {
 }
 
 class _CadastroScreenState extends State<CadastroScreen> {
-  String? _perfilSelecionado;
-  String? _universidadeSelecionada;
+  final _formKey = GlobalKey<FormState>();
+  final _viewmodel = CadastroViewModel();
 
-  bool get _isAluno => _perfilSelecionado == 'Aluno';
+  bool _isSubmitting = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _viewmodel.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate() || _isSubmitting) {
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final profile = await _viewmodel.createAccount();
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => RoleNavigationShell(role: profile.role),
+        ),
+        (_) => false,
+      );
+    } on AuthFailure catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _errorMessage = error.message;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,56 +84,114 @@ class _CadastroScreenState extends State<CadastroScreen> {
                     ),
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 420),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const _CadastroBrandHeader(),
-                          const SizedBox(height: 22),
-                          AppDropdownField<String>(
-                            value: _perfilSelecionado,
-                            hintText: 'Selecione se voce e Aluno/Motorista',
-                            items: const ['Aluno', 'Motorista'],
-                            onChanged: (value) {
-                              setState(() {
-                                _perfilSelecionado = value;
-                                if (value != 'Aluno') {
-                                  _universidadeSelecionada = null;
-                                }
-                              });
-                            },
+                      child: Form(
+                        key: _formKey,
+                        child: AutofillGroup(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const _CadastroBrandHeader(),
+                              const SizedBox(height: 22),
+                              AppDropdownField<AppUserRole>(
+                                value: _viewmodel.selectedRole,
+                                hintText: 'Selecione se voce e Aluno/Motorista',
+                                items: AppUserRole.values,
+                                itemLabelBuilder: (role) => role.displayLabel,
+                                onChanged: _isSubmitting
+                                    ? null
+                                    : (value) {
+                                        setState(() {
+                                          _viewmodel.selectedRole = value;
+                                          if (value != AppUserRole.aluno) {
+                                            _viewmodel.selectedUniversity =
+                                                null;
+                                          }
+                                        });
+                                      },
+                              ),
+                              if (_viewmodel.isAluno) ...[
+                                const SizedBox(height: 12),
+                                AppDropdownField<String>(
+                                  value: _viewmodel.selectedUniversity,
+                                  hintText: 'Selecione sua universidade',
+                                  items: const ['UNIFEOB', 'UNIFAE'],
+                                  onChanged: _isSubmitting
+                                      ? null
+                                      : (value) {
+                                          setState(() {
+                                            _viewmodel.selectedUniversity =
+                                                value;
+                                          });
+                                        },
+                                ),
+                              ],
+                              const SizedBox(height: 14),
+                              AppTextField(
+                                hintText: 'Nome Completo',
+                                controller: _viewmodel.nameController,
+                                enabled: !_isSubmitting,
+                                textInputAction: TextInputAction.next,
+                                autofillHints: const [AutofillHints.name],
+                                validator: _validateRequired,
+                              ),
+                              const SizedBox(height: 12),
+                              AppTextField(
+                                hintText: 'E-mail',
+                                controller: _viewmodel.emailController,
+                                enabled: !_isSubmitting,
+                                keyboardType: TextInputType.emailAddress,
+                                textInputAction: TextInputAction.next,
+                                autofillHints: const [AutofillHints.email],
+                                validator: _validateEmail,
+                              ),
+                              const SizedBox(height: 12),
+                              AppTextField(
+                                hintText: 'CPF ou CNPJ',
+                                controller: _viewmodel.documentController,
+                                enabled: !_isSubmitting,
+                                keyboardType: TextInputType.number,
+                                textInputAction: TextInputAction.next,
+                                validator: _validateRequired,
+                              ),
+                              const SizedBox(height: 12),
+                              AppTextField(
+                                hintText: 'Digite sua senha',
+                                controller: _viewmodel.passwordController,
+                                enabled: !_isSubmitting,
+                                obscureText: true,
+                                textInputAction: TextInputAction.next,
+                                autofillHints: const [
+                                  AutofillHints.newPassword,
+                                ],
+                                validator: _validatePassword,
+                              ),
+                              const SizedBox(height: 12),
+                              AppTextField(
+                                hintText: 'Repita sua senha...',
+                                controller:
+                                    _viewmodel.confirmPasswordController,
+                                enabled: !_isSubmitting,
+                                obscureText: true,
+                                textInputAction: TextInputAction.done,
+                                autofillHints: const [
+                                  AutofillHints.newPassword,
+                                ],
+                                validator: _validatePasswordConfirmation,
+                              ),
+                              if (_errorMessage != null) ...[
+                                const SizedBox(height: 14),
+                                _AuthErrorMessage(message: _errorMessage!),
+                              ],
+                              const SizedBox(height: 24),
+                              AppFilledButton(
+                                label: _isSubmitting
+                                    ? 'Cadastrando...'
+                                    : 'Cadastrar',
+                                onPressed: _isSubmitting ? null : _submit,
+                              ),
+                            ],
                           ),
-                          if (_isAluno) ...[
-                            const SizedBox(height: 12),
-                            AppDropdownField<String>(
-                              value: _universidadeSelecionada,
-                              hintText: 'Selecione sua universidade',
-                              items: const ['UNIFEOB', 'UNIFAE'],
-                              onChanged: (value) {
-                                setState(() {
-                                  _universidadeSelecionada = value;
-                                });
-                              },
-                            ),
-                          ],
-                          const SizedBox(height: 14),
-                          const AppTextField(hintText: 'Nome Completo'),
-                          const SizedBox(height: 12),
-                          const AppTextField(hintText: 'E-mail'),
-                          const SizedBox(height: 12),
-                          const AppTextField(hintText: 'CPF ou CNPJ'),
-                          const SizedBox(height: 12),
-                          const AppTextField(
-                            hintText: 'Digite sua senha',
-                            obscureText: true,
-                          ),
-                          const SizedBox(height: 12),
-                          const AppTextField(
-                            hintText: 'Repita sua senha...',
-                            obscureText: true,
-                          ),
-                          const SizedBox(height: 24),
-                          AppFilledButton(label: 'Cadastrar', onPressed: () {}),
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -92,6 +200,64 @@ class _CadastroScreenState extends State<CadastroScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+
+  static String? _validateRequired(String? value) {
+    if ((value ?? '').trim().isEmpty) {
+      return 'Campo obrigatorio.';
+    }
+    return null;
+  }
+
+  static String? _validateEmail(String? value) {
+    final email = value?.trim() ?? '';
+    if (email.isEmpty) {
+      return 'Informe seu e-mail.';
+    }
+    if (!email.contains('@') || !email.contains('.')) {
+      return 'Digite um e-mail valido.';
+    }
+    return null;
+  }
+
+  static String? _validatePassword(String? value) {
+    final password = value ?? '';
+    if (password.isEmpty) {
+      return 'Informe sua senha.';
+    }
+    if (password.length < 6) {
+      return 'Use pelo menos 6 caracteres.';
+    }
+    return null;
+  }
+
+  String? _validatePasswordConfirmation(String? value) {
+    if ((value ?? '').isEmpty) {
+      return 'Repita sua senha.';
+    }
+    if (value != _viewmodel.passwordController.text) {
+      return 'As senhas nao conferem.';
+    }
+    return null;
+  }
+}
+
+class _AuthErrorMessage extends StatelessWidget {
+  const _AuthErrorMessage({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      message,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        color: Color(0xFFFFC3B8),
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
       ),
     );
   }

@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:niccioli/navigation/role_navigation_shell.dart';
 import 'package:niccioli/screens/login/login_screen.dart';
+import 'package:niccioli/services/auth_service.dart';
 import 'package:niccioli/theme/app_colors.dart';
 import 'package:niccioli/widgets/app_brand_logo.dart';
 
@@ -26,7 +28,7 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 900),
     )..repeat();
 
-    _navigationTimer = Timer(const Duration(seconds: 3), _goToLogin);
+    _navigationTimer = Timer(const Duration(seconds: 3), _resolveSession);
   }
 
   @override
@@ -36,14 +38,53 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
-  void _goToLogin() {
+  Future<void> _resolveSession() async {
     if (!mounted) {
       return;
     }
 
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
+    final authService = AuthService.instance;
+    if (authService.currentUser == null) {
+      _goToLogin();
+      return;
+    }
+
+    try {
+      final profile = await authService.loadCurrentUserProfile();
+      if (!mounted) {
+        return;
+      }
+
+      if (profile == null) {
+        await authService.signOut();
+        _goToLogin(
+          error: 'Perfil nao encontrado. Entre em contato com o suporte.',
+        );
+        return;
+      }
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => RoleNavigationShell(role: profile.role),
+        ),
+      );
+    } on AuthFailure catch (error) {
+      if (!mounted) {
+        return;
+      }
+      await authService.signOut();
+      _goToLogin(error: error.message);
+    }
+  }
+
+  void _goToLogin({String? error}) {
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => LoginScreen(initialError: error)),
+    );
   }
 
   @override

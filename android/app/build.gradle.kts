@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.niccioli"
+    namespace = "com.niccioli.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

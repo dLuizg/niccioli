@@ -61,14 +61,14 @@ class AppDropdownField<T> extends StatelessWidget {
     required this.value,
     required this.hintText,
     required this.items,
-    required this.onChanged,
+    this.onChanged,
     this.itemLabelBuilder,
   });
 
   final T? value;
   final String hintText;
   final List<T> items;
-  final ValueChanged<T?> onChanged;
+  final ValueChanged<T?>? onChanged;
   final String Function(T)? itemLabelBuilder;
 
   @override

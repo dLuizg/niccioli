@@ -1,4 +1,4 @@
-package com.example.niccioli
+package com.niccioli.app
 
 import io.flutter.embedding.android.FlutterActivity
 
