@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:niccioli/models/app_user_profile.dart';
+import 'package:niccioli/screens/perfil/profile_screen.dart';
+import '../screens/contrato_aluno/contrato_aluno.dart';
+import '../screens/financeiro/financeiro_screen.dart';
+import '../screens/home_aluno/home_aluno.dart';
+import '../screens/mapa/mapa_screen.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_bottom_nav.dart';
-
-enum AppUserRole { aluno, motorista }
 
 class RoleNavigationShell extends StatefulWidget {
   const RoleNavigationShell({super.key, required this.role});
@@ -44,6 +48,9 @@ class _RoleNavigationShellState extends State<RoleNavigationShell> {
       bottomNavigationBar: AppBottomNav(
         selectedIndex: _selectedIndex,
         onItemTapped: (index) => setState(() => _selectedIndex = index),
+        secondItemLabel: widget.role == AppUserRole.aluno
+            ? 'Contrato'
+            : 'Lista',
       ),
     );
   }
@@ -54,21 +61,17 @@ class _RoleNavigationShellState extends State<RoleNavigationShell> {
     return [
       _NavigationDestinationData(
         screen: role == AppUserRole.aluno
-            ? const _PlaceholderTabScreen(title: 'Home Aluno')
+            ? const HomeAluno()
             : const _PlaceholderTabScreen(title: 'Home Motorista'),
       ),
       _NavigationDestinationData(
-        screen: _PlaceholderTabScreen(title: secondTabLabel),
+        screen: role == AppUserRole.aluno
+            ? const ContratoAluno()
+            : _PlaceholderTabScreen(title: secondTabLabel),
       ),
-      const _NavigationDestinationData(
-        screen: _PlaceholderTabScreen(title: 'Mapa'),
-      ),
-      const _NavigationDestinationData(
-        screen: _PlaceholderTabScreen(title: 'Financeiro'),
-      ),
-      const _NavigationDestinationData(
-        screen: _PlaceholderTabScreen(title: 'Perfil'),
-      ),
+      const _NavigationDestinationData(screen: HomeScreen()),
+      const _NavigationDestinationData(screen: FinanceiroScreen()),
+      const _NavigationDestinationData(screen: ProfileScreen()),
     ];
   }
 }

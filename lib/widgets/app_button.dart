@@ -10,7 +10,7 @@ class AppFilledButton extends StatelessWidget {
   });
 
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -29,10 +29,7 @@ class AppFilledButton extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -50,9 +47,9 @@ class AppDualOutlinedButton extends StatelessWidget {
   });
 
   final String label1;
-  final VoidCallback onPressed1;
+  final VoidCallback? onPressed1;
   final String label2;
-  final VoidCallback onPressed2;
+  final VoidCallback? onPressed2;
 
   @override
   Widget build(BuildContext context) {
@@ -71,10 +68,7 @@ class AppDualOutlinedButton extends StatelessWidget {
             ),
             child: Text(
               label1,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -92,10 +86,7 @@ class AppDualOutlinedButton extends StatelessWidget {
             ),
             child: Text(
               label2,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -115,9 +106,9 @@ class AppDualFilledButton extends StatelessWidget {
   });
 
   final String label1;
-  final VoidCallback onPressed1;
+  final VoidCallback? onPressed1;
   final String label2;
-  final VoidCallback onPressed2;
+  final VoidCallback? onPressed2;
 
   @override
   Widget build(BuildContext context) {
@@ -138,10 +129,7 @@ class AppDualFilledButton extends StatelessWidget {
             child: Text(
               label1,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -161,10 +149,7 @@ class AppDualFilledButton extends StatelessWidget {
             child: Text(
               label2,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -182,7 +167,7 @@ class AppOutlinedButton extends StatelessWidget {
   });
 
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -200,10 +185,7 @@ class AppOutlinedButton extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
     );

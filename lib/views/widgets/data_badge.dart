@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
+import 'package:intl/date_symbol_data_local.dart';
 
 class CabecalhoData extends StatelessWidget {
   const CabecalhoData({super.key});
 
   @override
   Widget build(BuildContext context) {
-    DateTime agora = DateTime.now();
+    initializeDateFormatting('pt_BR', null);
     
-    // Lógica de formatação
+    DateTime agora = DateTime.now();
     String dataNumerica = DateFormat("dd/MM/yyyy", "pt_BR").format(agora);
     String rawDia = DateFormat("EEEE", "pt_BR").format(agora);
     String diaSemana = rawDia[0].toUpperCase() + rawDia.substring(1);
