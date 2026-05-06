@@ -191,9 +191,9 @@ class _MessageBubble extends StatelessWidget {
           maxWidth: MediaQuery.of(context).size.width * 0.78,
         ),
         decoration: BoxDecoration(
-          color: isUser ? _accent.withOpacity(0.15) : _bgCard,
+          color: isUser ? _accent.withValues(alpha: 0.15) : _bgCard,
           border: Border.all(
-            color: isUser ? _accent.withOpacity(0.4) : Colors.white10,
+            color: isUser ? _accent.withValues(alpha: 0.4) : Colors.white10,
           ),
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),

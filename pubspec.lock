@@ -187,18 +187,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-<<<<<<< HEAD
-  http:
-    dependency: "direct main"
-=======
   flutter_web_plugins:
     dependency: transitive
     description: flutter
     source: sdk
     version: "0.0.0"
   http:
-    dependency: transitive
->>>>>>> develop
+    dependency: "direct main"
     description:
       name: http
       sha256: "87721a4a50b19c7f1d49001e51409bddc46303966ce89a65af4f4e6004896412"
@@ -345,11 +340,7 @@ packages:
       sha256: "93167629bfc610f71560ab9312acdda4959de4df6fac7492c89ff0d3886f6636"
       url: "https://pub.dev"
     source: hosted
-<<<<<<< HEAD
-    version: "0.7.10"
-=======
     version: "0.7.9"
->>>>>>> develop
   typed_data:
     dependency: transitive
     description:
@@ -358,8 +349,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
-<<<<<<< HEAD
-=======
   url_launcher:
     dependency: "direct main"
     description:
@@ -424,7 +413,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.5"
->>>>>>> develop
   vector_math:
     dependency: transitive
     description:
@@ -449,8 +437,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
-<<<<<<< HEAD
-=======
   win32:
     dependency: transitive
     description:
@@ -459,7 +445,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.15.0"
->>>>>>> develop
 sdks:
   dart: ">=3.11.0 <4.0.0"
   flutter: ">=3.38.0"
