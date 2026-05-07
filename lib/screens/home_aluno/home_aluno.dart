@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:niccioli/screens/notification/notification_screen.dart';
+import 'package:niccioli/services/auth_service.dart';
+import 'package:niccioli/services/transport_service.dart';
 import 'package:niccioli/views/widgets/notification_badge.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
@@ -15,9 +17,9 @@ enum _ModoHome { antes, intermediario, depois }
 
 // Estados do fluxo de ida (modo antes)
 enum _EstadoAntes {
-  pendente,      // Aguardando confirmação do aluno
-  confirmado,    // Aluno confirmou presença
-  cancelando,    // Dialog de cancelamento aberto
+  pendente, // Aguardando confirmação do aluno
+  confirmado, // Aluno confirmou presença
+  cancelando, // Dialog de cancelamento aberto
   naoSolicitado, // Aluno informou que não vai
   horarioLimite, // Prazo encerrado
 }
@@ -30,11 +32,11 @@ enum _EstadoIntermediario {
 
 // Estados do fluxo de volta (modo depois)
 enum _EstadoDepois {
-  aguardando,            // Van ainda não chegou ao ponto
-  vanChegou,             // Van chegou — aguardando confirmação
+  aguardando, // Van ainda não chegou ao ponto
+  vanChegou, // Van chegou — aguardando confirmação
   solicitandoOutroPonto, // Dialog: escolha do ponto alternativo
   confirmandoOutroPonto, // Dialog: confirmação do ponto escolhido
-  finalizado,            // Check-in de volta concluído
+  finalizado, // Check-in de volta concluído
 }
 
 class HomeAluno extends StatefulWidget {
@@ -50,7 +52,8 @@ class _HomeAlunoState extends State<HomeAluno> {
 
   // Estados internos de cada fluxo
   _EstadoAntes _estadoAntes = _EstadoAntes.pendente;
-  _EstadoIntermediario _estadoIntermediario = _EstadoIntermediario.naoSolicitado;
+  _EstadoIntermediario _estadoIntermediario =
+      _EstadoIntermediario.naoSolicitado;
   _EstadoDepois _estadoDepois = _EstadoDepois.aguardando;
 
   // Ponto alternativo selecionado no dialog de volta
@@ -60,6 +63,9 @@ class _HomeAlunoState extends State<HomeAluno> {
   final String _localVan = 'Van na Fazenda';
   final int _alunosAtuais = 1;
   final int _alunosTotal = 2;
+
+  bool _isSavingPresence = false;
+  String? _presenceMessage;
 
   // Timer que verifica a cada minuto se o modo deve mudar
   Timer? _timer;
@@ -96,6 +102,7 @@ class _HomeAlunoState extends State<HomeAluno> {
   void initState() {
     super.initState();
     _modo = _calcularModo();
+    _loadTodayPresence();
 
     // Verifica a cada minuto se o modo deve mudar automaticamente
     _timer = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -117,6 +124,83 @@ class _HomeAlunoState extends State<HomeAluno> {
     // Cancela o timer ao sair da tela para evitar memory leak
     _timer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadTodayPresence() async {
+    try {
+      final response = await TransportService.instance
+          .loadTodayPresenceResponse();
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        switch (response.outboundStatus) {
+          case 'confirmed':
+            _estadoAntes = _EstadoAntes.confirmado;
+            break;
+          case 'notGoing':
+            _estadoAntes = _EstadoAntes.naoSolicitado;
+            break;
+        }
+
+        switch (response.returnStatus) {
+          case 'released':
+            _estadoDepois = _EstadoDepois.vanChegou;
+            break;
+          case 'inVan':
+          case 'notReturning':
+          case 'alternatePickup':
+            _estadoDepois = _EstadoDepois.finalizado;
+            break;
+        }
+
+        _pontoSelecionado = response.alternatePickupPoint ?? '';
+      });
+    } on AuthFailure catch (error) {
+      if (mounted) {
+        setState(() {
+          _presenceMessage = error.message;
+        });
+      }
+    }
+  }
+
+  Future<void> _saveTodayPresence({
+    String? outboundStatus,
+    String? returnStatus,
+    String? alternatePickupPoint,
+    required VoidCallback applyLocalState,
+  }) async {
+    if (_isSavingPresence) {
+      return;
+    }
+
+    setState(() {
+      _isSavingPresence = true;
+      _presenceMessage = null;
+      applyLocalState();
+    });
+
+    try {
+      await TransportService.instance.updateTodayPresenceResponse(
+        outboundStatus: outboundStatus,
+        returnStatus: returnStatus,
+        alternatePickupPoint: alternatePickupPoint,
+      );
+    } on AuthFailure catch (error) {
+      if (mounted) {
+        setState(() {
+          _presenceMessage = error.message;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingPresence = false;
+        });
+      }
+    }
   }
 
   @override
@@ -159,9 +243,7 @@ class _HomeAlunoState extends State<HomeAluno> {
                 NotificationBadge(
                   onPressed: () => Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const NotificacaoTela(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const NotificacaoTela()),
                   ),
                 ),
               ],
@@ -171,11 +253,35 @@ class _HomeAlunoState extends State<HomeAluno> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: switch (_modo) {
-                _ModoHome.antes => _buildCorpoAntes(),
-                _ModoHome.intermediario => _buildCorpoIntermediario(),
-                _ModoHome.depois => _buildCorpoDepois(),
-              },
+              child: Column(
+                children: [
+                  if (_presenceMessage != null) ...[
+                    Text(
+                      _presenceMessage!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFFFFC3B8),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                  if (_isSavingPresence)
+                    const LinearProgressIndicator(
+                      minHeight: 2,
+                      color: AppColors.orange,
+                      backgroundColor: AppColors.navBackground,
+                    ),
+                  Expanded(
+                    child: switch (_modo) {
+                      _ModoHome.antes => _buildCorpoAntes(),
+                      _ModoHome.intermediario => _buildCorpoIntermediario(),
+                      _ModoHome.depois => _buildCorpoDepois(),
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -250,11 +356,16 @@ class _HomeAlunoState extends State<HomeAluno> {
             const SizedBox(height: 16),
             AppDualOutlinedButton(
               label1: 'CONFIRMAR',
-              onPressed1: () =>
-                  setState(() => _estadoAntes = _EstadoAntes.confirmado),
+              onPressed1: () => _saveTodayPresence(
+                outboundStatus: 'confirmed',
+                applyLocalState: () => _estadoAntes = _EstadoAntes.confirmado,
+              ),
               label2: 'NÃO VOU',
-              onPressed2: () =>
-                  setState(() => _estadoAntes = _EstadoAntes.naoSolicitado),
+              onPressed2: () => _saveTodayPresence(
+                outboundStatus: 'notGoing',
+                applyLocalState: () =>
+                    _estadoAntes = _EstadoAntes.naoSolicitado,
+              ),
             ),
           ],
         );
@@ -268,14 +379,13 @@ class _HomeAlunoState extends State<HomeAluno> {
       case _EstadoAntes.naoSolicitado:
         return AppOutlinedButton(
           label: 'Solicitar',
-          onPressed: () =>
-              setState(() => _estadoAntes = _EstadoAntes.pendente),
+          onPressed: () => _saveTodayPresence(
+            outboundStatus: 'confirmed',
+            applyLocalState: () => _estadoAntes = _EstadoAntes.confirmado,
+          ),
         );
       case _EstadoAntes.horarioLimite:
-        return AppOutlinedButton(
-          label: 'Entrar em contato',
-          onPressed: () {},
-        );
+        return AppOutlinedButton(label: 'Entrar em contato', onPressed: () {});
     }
   }
 
@@ -311,11 +421,16 @@ class _HomeAlunoState extends State<HomeAluno> {
               const SizedBox(height: 28),
               AppDualFilledButton(
                 label1: 'Entendo,\nquero Cancelar!',
-                onPressed1: () => setState(
-                    () => _estadoAntes = _EstadoAntes.naoSolicitado),
+                onPressed1: () => _saveTodayPresence(
+                  outboundStatus: 'notGoing',
+                  applyLocalState: () =>
+                      _estadoAntes = _EstadoAntes.naoSolicitado,
+                ),
                 label2: 'Quero Manter o\ntransporte!',
-                onPressed2: () =>
-                    setState(() => _estadoAntes = _EstadoAntes.confirmado),
+                onPressed2: () => _saveTodayPresence(
+                  outboundStatus: 'confirmed',
+                  applyLocalState: () => _estadoAntes = _EstadoAntes.confirmado,
+                ),
               ),
             ],
           ),
@@ -374,15 +489,15 @@ class _HomeAlunoState extends State<HomeAluno> {
         // Aluno pode ainda solicitar transporte antes do prazo final
         return AppOutlinedButton(
           label: 'Solicitar',
-          onPressed: () => setState(
-              () => _estadoIntermediario = _EstadoIntermediario.horarioLimite),
+          onPressed: () => _saveTodayPresence(
+            outboundStatus: 'confirmed',
+            applyLocalState: () =>
+                _estadoIntermediario = _EstadoIntermediario.horarioLimite,
+          ),
         );
       case _EstadoIntermediario.horarioLimite:
         // Prazo esgotado — único caminho é contato direto com motorista
-        return AppOutlinedButton(
-          label: 'Entrar em contato',
-          onPressed: () {},
-        );
+        return AppOutlinedButton(label: 'Entrar em contato', onPressed: () {});
     }
   }
 
@@ -441,8 +556,10 @@ class _HomeAlunoState extends State<HomeAluno> {
             const SizedBox(height: 20),
             AppOutlinedButton(
               label: 'Já Fui Liberado(a)',
-              onPressed: () =>
-                  setState(() => _estadoDepois = _EstadoDepois.vanChegou),
+              onPressed: () => _saveTodayPresence(
+                returnStatus: 'released',
+                applyLocalState: () => _estadoDepois = _EstadoDepois.vanChegou,
+              ),
             ),
             const SizedBox(height: 20),
             _buildLinksDepois(),
@@ -462,8 +579,10 @@ class _HomeAlunoState extends State<HomeAluno> {
             const SizedBox(height: 16),
             AppOutlinedButton(
               label: 'SIM, ESTOU',
-              onPressed: () =>
-                  setState(() => _estadoDepois = _EstadoDepois.finalizado),
+              onPressed: () => _saveTodayPresence(
+                returnStatus: 'inVan',
+                applyLocalState: () => _estadoDepois = _EstadoDepois.finalizado,
+              ),
             ),
             const SizedBox(height: 20),
             _buildLinksDepois(),
@@ -486,8 +605,10 @@ class _HomeAlunoState extends State<HomeAluno> {
     return Column(
       children: [
         GestureDetector(
-          onTap: () =>
-              setState(() => _estadoDepois = _EstadoDepois.finalizado),
+          onTap: () => _saveTodayPresence(
+            returnStatus: 'notReturning',
+            applyLocalState: () => _estadoDepois = _EstadoDepois.finalizado,
+          ),
           child: const Text(
             'Não vou voltar',
             style: TextStyle(color: Colors.white70, fontSize: 15),
@@ -496,7 +617,8 @@ class _HomeAlunoState extends State<HomeAluno> {
         const SizedBox(height: 10),
         GestureDetector(
           onTap: () => setState(
-              () => _estadoDepois = _EstadoDepois.solicitandoOutroPonto),
+            () => _estadoDepois = _EstadoDepois.solicitandoOutroPonto,
+          ),
           child: const Text(
             'Vou pegar a van em outro lugar',
             style: TextStyle(color: Colors.white70, fontSize: 15),
@@ -583,16 +705,19 @@ class _HomeAlunoState extends State<HomeAluno> {
               const SizedBox(height: 10),
               Text(
                 'Tem certeza que vai pegar a van no ponto da $_pontoSelecionado?',
-                style:
-                    const TextStyle(color: AppColors.textDark, fontSize: 14),
+                style: const TextStyle(color: AppColors.textDark, fontSize: 14),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
               AppFilledButton(
                 label:
                     'Sim, vou pegar o van no ponto ${_pontoSelecionado.toLowerCase()}',
-                onPressed: () =>
-                    setState(() => _estadoDepois = _EstadoDepois.finalizado),
+                onPressed: () => _saveTodayPresence(
+                  returnStatus: 'alternatePickup',
+                  alternatePickupPoint: _pontoSelecionado,
+                  applyLocalState: () =>
+                      _estadoDepois = _EstadoDepois.finalizado,
+                ),
               ),
             ],
           ),
