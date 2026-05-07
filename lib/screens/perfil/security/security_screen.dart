@@ -14,8 +14,7 @@ class SecurityScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ProfileDetailDate(),
-          SizedBox(height: 38),
+          SizedBox(height: 18),
           Text(
             'Configuracoes de Seguranca',
             style: TextStyle(

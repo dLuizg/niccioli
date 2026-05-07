@@ -12,11 +12,7 @@ class PrivacyAndPolicyScreen extends StatelessWidget {
       contentPadding: EdgeInsets.fromLTRB(18, 18, 18, 36),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ProfileDetailDate(),
-          SizedBox(height: 36),
-          _PrivacyCard(),
-        ],
+        children: [SizedBox(height: 18), _PrivacyCard()],
       ),
     );
   }

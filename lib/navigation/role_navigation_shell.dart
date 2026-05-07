@@ -9,9 +9,14 @@ import '../theme/app_colors.dart';
 import '../widgets/app_bottom_nav.dart';
 
 class RoleNavigationShell extends StatefulWidget {
-  const RoleNavigationShell({super.key, required this.role});
+  const RoleNavigationShell({
+    super.key,
+    required this.role,
+    this.initialIndex = 0,
+  });
 
   final AppUserRole role;
+  final int initialIndex;
 
   @override
   State<RoleNavigationShell> createState() => _RoleNavigationShellState();
@@ -26,15 +31,28 @@ class _RoleNavigationShellState extends State<RoleNavigationShell> {
   void initState() {
     super.initState();
     _destinations = _buildDestinations(widget.role);
+    _selectedIndex = _clampIndex(widget.initialIndex);
   }
 
   @override
   void didUpdateWidget(covariant RoleNavigationShell oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.role != widget.role) {
-      _selectedIndex = 0;
       _destinations = _buildDestinations(widget.role);
+      _selectedIndex = _clampIndex(widget.initialIndex);
+    } else if (oldWidget.initialIndex != widget.initialIndex) {
+      _selectedIndex = _clampIndex(widget.initialIndex);
     }
+  }
+
+  int _clampIndex(int index) {
+    if (index < 0) {
+      return 0;
+    }
+    if (index >= _destinations.length) {
+      return _destinations.length - 1;
+    }
+    return index;
   }
 
   @override

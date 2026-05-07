@@ -39,7 +39,8 @@ class NiccioliApp extends StatelessWidget {
       routes: {
         ProfileScreen.accountRoute: (_) => const AccountScreen(),
         ProfileScreen.securityRoute: (_) => const SecurityScreen(),
-        ProfileScreen.notificationsRoute: (_) => const NotificacaoTela(),
+        ProfileScreen.notificationsRoute: (_) =>
+            const NotificacaoTela(showProfileNavigation: true),
         ProfileScreen.supportRoute: (_) => const SupportScreen(),
         ProfileScreen.privacyRoute: (_) => const PrivacyAndPolicyScreen(),
       },

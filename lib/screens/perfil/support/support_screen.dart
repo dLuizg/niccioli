@@ -13,8 +13,7 @@ class SupportScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ProfileDetailDate(),
-          SizedBox(height: 82),
+          SizedBox(height: 58),
           _SupportText(
             'Para solicitar ajuda relacionada ao aplicativo, entre em contato pelo seguinte telefone:',
           ),
