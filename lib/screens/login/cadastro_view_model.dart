@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:niccioli/models/app_user_profile.dart';
 import 'package:niccioli/services/auth_service.dart';
+import 'package:niccioli/utils/br_value_masks.dart';
 
 class CadastroViewModel {
   final nameController = TextEditingController();
@@ -72,7 +73,7 @@ class CadastroViewModel {
         uid: createdUser.uid,
         email: emailController.text.trim(),
         name: nameController.text.trim(),
-        document: documentController.text.trim(),
+        document: BrValueMasks.onlyDigits(documentController.text),
         role: role,
         university: role == AppUserRole.aluno
             ? selectedUniversity?.trim()

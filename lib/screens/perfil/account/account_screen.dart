@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:niccioli/models/app_user_profile.dart';
+import 'package:niccioli/models/transport_profile.dart';
 import 'package:niccioli/screens/perfil/profile_detail_layout.dart';
 import 'package:niccioli/services/auth_service.dart';
+import 'package:niccioli/services/transport_service.dart';
 import 'package:niccioli/theme/app_colors.dart';
+import 'package:niccioli/utils/br_value_masks.dart';
+
+class _AccountData {
+  const _AccountData({required this.profile, required this.transport});
+
+  final AppUserProfile profile;
+  final TransportProfile? transport;
+}
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -21,26 +32,36 @@ class _AccountScreenState extends State<AccountScreen> {
     'UNESP',
   ];
 
-  late Future<AppUserProfile?> _profileFuture;
+  late Future<_AccountData?> _accountFuture;
   AppUserProfile? _profile;
+  TransportProfile? _transport;
   bool _isSaving = false;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _profileFuture = _loadProfile();
+    _accountFuture = _loadAccount();
   }
 
-  Future<AppUserProfile?> _loadProfile() async {
+  Future<_AccountData?> _loadAccount() async {
     final profile = await AuthService.instance.loadCurrentUserProfile();
     _profile = profile;
-    return profile;
+    if (profile == null) {
+      _transport = null;
+      return null;
+    }
+    if (profile.role == AppUserRole.motorista) {
+      _transport = await TransportService.instance.loadCurrentDriverTransport();
+    } else {
+      _transport = null;
+    }
+    return _AccountData(profile: profile, transport: _transport);
   }
 
   Future<void> _reloadProfile() async {
     setState(() {
-      _profileFuture = _loadProfile();
+      _accountFuture = _loadAccount();
     });
   }
 
@@ -62,6 +83,7 @@ class _AccountScreenState extends State<AccountScreen> {
     required String initialValue,
     required Future<void> Function(String value) onSave,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) async {
     final value = await showDialog<String>(
       context: context,
@@ -70,6 +92,7 @@ class _AccountScreenState extends State<AccountScreen> {
         initialValue: initialValue,
         emptyValue: _emptyValue,
         keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
       ),
     );
 
@@ -197,27 +220,59 @@ class _AccountScreenState extends State<AccountScreen> {
     await _saveProfileChange(() => _saveAlternatePoints(updatedPoints));
   }
 
-  String _normalizeDeadline(String value) {
-    final trimmed = value.trim();
+  TimeOfDay _deadlineTimeFromValue(String? value) {
+    final trimmed = value?.trim() ?? '';
     final match = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(trimmed);
     if (match == null) {
-      throw const AuthFailure('Informe o horario no formato HH:mm.');
+      return const TimeOfDay(hour: 17, minute: 0);
     }
 
     final hour = int.parse(match.group(1)!);
     final minute = int.parse(match.group(2)!);
     if (hour > 23 || minute > 59) {
-      throw const AuthFailure('Informe um horario valido entre 00:00 e 23:59.');
+      return const TimeOfDay(hour: 17, minute: 0);
     }
 
-    return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  String _formatDeadlineTime(TimeOfDay time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _pickDefaultListDeadline(String? currentDeadline) async {
+    if (_isSaving) {
+      return;
+    }
+
+    final selected = await showTimePicker(
+      context: context,
+      initialTime: _deadlineTimeFromValue(currentDeadline),
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        return MediaQuery(
+          data: mediaQuery.copyWith(alwaysUse24HourFormat: true),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+    );
+
+    if (!mounted || selected == null) {
+      return;
+    }
+
+    await _saveProfileChange(
+      () => TransportService.instance.updateCurrentDriverDefaultListDeadline(
+        _formatDeadlineTime(selected),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return ProfileDetailScaffold(
-      child: FutureBuilder<AppUserProfile?>(
-        future: _profileFuture,
+      child: FutureBuilder<_AccountData?>(
+        future: _accountFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const SizedBox(
@@ -238,16 +293,19 @@ class _AccountScreenState extends State<AccountScreen> {
             );
           }
 
-          final profile = snapshot.data;
-          if (profile == null) {
+          final account = snapshot.data;
+          if (account == null) {
             return _AccountMessageState(
               message: 'Perfil nao encontrado. Entre em contato com o suporte.',
               onRetry: _reloadProfile,
             );
           }
 
+          final profile = account.profile;
+          final transport = account.transport;
           return _AccountContent(
             profile: profile,
+            transport: transport,
             isSaving: _isSaving,
             errorMessage: _errorMessage,
             displayValue: _displayValue,
@@ -255,15 +313,25 @@ class _AccountScreenState extends State<AccountScreen> {
             onEditName: () => _editTextField(
               title: 'Nome',
               initialValue: profile.name,
-              onSave: (value) =>
-                  AuthService.instance.updateCurrentUserProfile(name: value),
+              onSave: (value) async {
+                await AuthService.instance.updateCurrentUserProfile(
+                  name: value,
+                );
+                if (profile.role == AppUserRole.motorista) {
+                  await TransportService.instance.updateCurrentDriverName(
+                    value,
+                  );
+                }
+              },
             ),
             onEditPhone: () => _editTextField(
               title: 'Telefone',
-              initialValue: profile.phone ?? '',
+              initialValue: BrValueMasks.formatPhone(profile.phone ?? ''),
               keyboardType: TextInputType.phone,
-              onSave: (value) =>
-                  AuthService.instance.updateCurrentUserProfile(phone: value),
+              inputFormatters: [BrValueMasks.phoneFormatter],
+              onSave: (value) => AuthService.instance.updateCurrentUserProfile(
+                phone: BrValueMasks.onlyDigits(value),
+              ),
             ),
             onEditAddress: () => _editTextField(
               title: 'Endereco',
@@ -287,27 +355,27 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
             onEditVehicle: () => _editTextField(
               title: 'Veiculo',
-              initialValue: profile.vehicle ?? '',
+              initialValue: transport?.vehicleModel ?? '',
               onSave: (value) =>
-                  AuthService.instance.updateCurrentUserProfile(vehicle: value),
+                  TransportService.instance.updateCurrentDriverVehicle(
+                    vehicleModel: value,
+                    licensePlate: transport?.licensePlate ?? '',
+                  ),
             ),
             onEditLicensePlate: () => _editTextField(
               title: 'Placa',
-              initialValue: profile.licensePlate ?? '',
-              onSave: (value) => AuthService.instance.updateCurrentUserProfile(
-                licensePlate: value,
+              initialValue: BrValueMasks.formatLicensePlate(
+                transport?.licensePlate ?? '',
               ),
+              inputFormatters: [BrValueMasks.licensePlateFormatter],
+              onSave: (value) =>
+                  TransportService.instance.updateCurrentDriverVehicle(
+                    vehicleModel: transport?.vehicleModel ?? '',
+                    licensePlate: BrValueMasks.normalizeLicensePlate(value),
+                  ),
             ),
-            onEditDefaultListDeadline: () => _editTextField(
-              title: 'Horario limite padrao',
-              initialValue: profile.defaultListDeadline ?? '',
-              keyboardType: TextInputType.datetime,
-              onSave: (value) {
-                final normalized = _normalizeDeadline(value);
-                return AuthService.instance.updateCurrentUserProfile(
-                  defaultListDeadline: normalized,
-                );
-              },
+            onEditDefaultListDeadline: () => _pickDefaultListDeadline(
+              transport?.defaultListDeadline ?? profile.defaultListDeadline,
             ),
             onManageInstitutions: () => _manageInstitutions(profile),
             onManageStudents: _openStudentManager,
@@ -324,6 +392,7 @@ class _AccountScreenState extends State<AccountScreen> {
 class _AccountContent extends StatelessWidget {
   const _AccountContent({
     required this.profile,
+    required this.transport,
     required this.isSaving,
     required this.errorMessage,
     required this.displayValue,
@@ -344,6 +413,7 @@ class _AccountContent extends StatelessWidget {
   });
 
   final AppUserProfile profile;
+  final TransportProfile? transport;
   final bool isSaving;
   final String? errorMessage;
   final String Function(String? value) displayValue;
@@ -406,6 +476,7 @@ class _AccountContent extends StatelessWidget {
         if (profile.role == AppUserRole.motorista)
           _DriverAccountFields(
             profile: profile,
+            transport: transport,
             displayValue: displayValue,
             displayList: displayList,
             isSaving: isSaving,
@@ -482,7 +553,8 @@ class _StudentAccountFields extends StatelessWidget {
         ),
         _AccountInfoTile(
           icon: Icons.phone_outlined,
-          label: 'Telefone: ${displayValue(profile.phone)}',
+          label:
+              'Telefone: ${displayValue(BrValueMasks.formatPhone(profile.phone ?? ''))}',
           onTap: isSaving ? null : onEditPhone,
         ),
         _AccountInfoTile(
@@ -528,6 +600,7 @@ class _StudentAccountFields extends StatelessWidget {
 class _DriverAccountFields extends StatelessWidget {
   const _DriverAccountFields({
     required this.profile,
+    required this.transport,
     required this.displayValue,
     required this.displayList,
     required this.isSaving,
@@ -541,6 +614,7 @@ class _DriverAccountFields extends StatelessWidget {
   });
 
   final AppUserProfile profile;
+  final TransportProfile? transport;
   final String Function(String? value) displayValue;
   final String Function(List<String> values) displayList;
   final bool isSaving;
@@ -568,23 +642,25 @@ class _DriverAccountFields extends StatelessWidget {
         ),
         _AccountInfoTile(
           icon: Icons.phone_outlined,
-          label: 'Telefone: ${displayValue(profile.phone)}',
+          label:
+              'Telefone: ${displayValue(BrValueMasks.formatPhone(profile.phone ?? ''))}',
           onTap: isSaving ? null : onEditPhone,
         ),
         _AccountInfoTile(
           icon: Icons.navigation_outlined,
-          label: 'Veiculo: ${displayValue(profile.vehicle)}',
+          label: 'Veiculo: ${displayValue(transport?.vehicleModel)}',
           onTap: isSaving ? null : onEditVehicle,
         ),
         _AccountInfoTile(
           icon: Icons.tag,
-          label: 'Placa: ${displayValue(profile.licensePlate)}',
+          label:
+              'Placa: ${displayValue(BrValueMasks.formatLicensePlate(transport?.licensePlate ?? ''))}',
           onTap: isSaving ? null : onEditLicensePlate,
         ),
         _AccountInfoTile(
           icon: Icons.schedule,
           label:
-              'Horario limite padrao: ${displayValue(profile.defaultListDeadline)}',
+              'Horario limite padrao: ${displayValue(transport?.defaultListDeadline ?? profile.defaultListDeadline)}',
           onTap: isSaving ? null : onEditDefaultListDeadline,
         ),
         _AccountInfoTile(
@@ -653,12 +729,14 @@ class _AccountEditDialog extends StatefulWidget {
     required this.initialValue,
     required this.emptyValue,
     this.keyboardType,
+    this.inputFormatters,
   });
 
   final String title;
   final String initialValue;
   final String emptyValue;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   State<_AccountEditDialog> createState() => _AccountEditDialogState();
@@ -695,6 +773,7 @@ class _AccountEditDialogState extends State<_AccountEditDialog> {
         controller: _controller,
         autofocus: true,
         keyboardType: widget.keyboardType,
+        inputFormatters: widget.inputFormatters,
         style: const TextStyle(color: AppColors.white),
         decoration: InputDecoration(
           hintText: widget.emptyValue,
@@ -832,7 +911,7 @@ class _DriverStudentsPageState extends State<_DriverStudentsPage> {
   @override
   void initState() {
     super.initState();
-    _studentsFuture = AuthService.instance.loadCurrentDriverStudents();
+    _studentsFuture = TransportService.instance.loadCurrentDriverStudents();
   }
 
   @override
@@ -843,7 +922,7 @@ class _DriverStudentsPageState extends State<_DriverStudentsPage> {
 
   Future<void> _reloadStudents() async {
     setState(() {
-      _studentsFuture = AuthService.instance.loadCurrentDriverStudents();
+      _studentsFuture = TransportService.instance.loadCurrentDriverStudents();
     });
   }
 
@@ -858,8 +937,8 @@ class _DriverStudentsPageState extends State<_DriverStudentsPage> {
     });
 
     try {
-      await AuthService.instance.addStudentToCurrentDriverByDocument(
-        _cpfController.text,
+      await TransportService.instance.addStudentToCurrentDriverByDocument(
+        BrValueMasks.onlyDigits(_cpfController.text),
       );
       _cpfController.clear();
       await _reloadStudents();
@@ -935,7 +1014,9 @@ class _DriverStudentsPageState extends State<_DriverStudentsPage> {
     });
 
     try {
-      await AuthService.instance.removeStudentFromCurrentDriver(studentUid);
+      await TransportService.instance.removeStudentFromCurrentDriver(
+        studentUid,
+      );
       await _reloadStudents();
       if (mounted) {
         setState(() {
@@ -1064,6 +1145,7 @@ class _CpfInputTile extends StatelessWidget {
               controller: controller,
               enabled: !isAdding,
               keyboardType: TextInputType.number,
+              inputFormatters: [BrValueMasks.cpfFormatter],
               style: const TextStyle(color: AppColors.white, fontSize: 13),
               decoration: InputDecoration(
                 hintText: 'CPF do aluno',

@@ -4,6 +4,7 @@ import 'package:niccioli/navigation/role_navigation_shell.dart';
 import 'package:niccioli/screens/login/cadastro_view_model.dart';
 import 'package:niccioli/services/auth_service.dart';
 import 'package:niccioli/theme/app_colors.dart';
+import 'package:niccioli/utils/br_value_masks.dart';
 import 'package:niccioli/widgets/app_button.dart';
 import 'package:niccioli/widgets/app_input_field.dart';
 
@@ -151,6 +152,9 @@ class _CadastroScreenState extends State<CadastroScreen> {
                                 enabled: !_isSubmitting,
                                 keyboardType: TextInputType.number,
                                 textInputAction: TextInputAction.next,
+                                inputFormatters: [
+                                  BrValueMasks.cpfCnpjFormatter,
+                                ],
                                 validator: _validateRequired,
                               ),
                               const SizedBox(height: 12),

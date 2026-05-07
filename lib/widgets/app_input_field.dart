@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:niccioli/theme/app_colors.dart';
 
 class AppTextField extends StatelessWidget {
@@ -13,6 +14,7 @@ class AppTextField extends StatelessWidget {
     this.textInputAction,
     this.enabled = true,
     this.autofillHints,
+    this.inputFormatters,
   });
 
   final String hintText;
@@ -24,6 +26,7 @@ class AppTextField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final bool enabled;
   final Iterable<String>? autofillHints;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +39,7 @@ class AppTextField extends StatelessWidget {
       obscureText: obscureText,
       enabled: enabled,
       autofillHints: autofillHints,
+      inputFormatters: inputFormatters,
       style: const TextStyle(color: AppColors.textDark),
       decoration: InputDecoration(
         hintText: hintText,
