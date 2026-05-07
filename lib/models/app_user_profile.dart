@@ -41,6 +41,16 @@ class AppUserProfile {
     required this.document,
     required this.role,
     required this.university,
+    this.phone,
+    this.address,
+    this.defaultPickupPoint,
+    this.alternatePickupPoints = const [],
+    this.vehicle,
+    this.licensePlate,
+    this.servedInstitutions = const [],
+    this.studentUids = const [],
+    this.driverUid,
+    this.defaultListDeadline,
   });
 
   final String uid;
@@ -49,6 +59,16 @@ class AppUserProfile {
   final String document;
   final AppUserRole role;
   final String? university;
+  final String? phone;
+  final String? address;
+  final String? defaultPickupPoint;
+  final List<String> alternatePickupPoints;
+  final String? vehicle;
+  final String? licensePlate;
+  final List<String> servedInstitutions;
+  final List<String> studentUids;
+  final String? driverUid;
+  final String? defaultListDeadline;
 
   String get profileLabel => '${role.displayLabel} - Niccioli';
 
@@ -65,6 +85,28 @@ class AppUserProfile {
       document: (data['document'] as String?) ?? '',
       role: role,
       university: data['university'] as String?,
+      phone: data['phone'] as String?,
+      address: data['address'] as String?,
+      defaultPickupPoint: data['defaultPickupPoint'] as String?,
+      alternatePickupPoints:
+          (data['alternatePickupPoints'] as List<dynamic>?)
+              ?.whereType<String>()
+              .toList() ??
+          const [],
+      vehicle: data['vehicle'] as String?,
+      licensePlate: data['licensePlate'] as String?,
+      servedInstitutions:
+          (data['servedInstitutions'] as List<dynamic>?)
+              ?.whereType<String>()
+              .toList() ??
+          const [],
+      studentUids:
+          (data['studentUids'] as List<dynamic>?)
+              ?.whereType<String>()
+              .toList() ??
+          const [],
+      driverUid: data['driverUid'] as String?,
+      defaultListDeadline: data['defaultListDeadline'] as String?,
     );
   }
 

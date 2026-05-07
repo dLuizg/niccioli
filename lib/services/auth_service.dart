@@ -76,6 +76,213 @@ class AuthService {
     }
   }
 
+  Future<AppUserProfile?> updateCurrentUserProfile({
+    String? name,
+    String? phone,
+    String? address,
+    String? defaultPickupPoint,
+    String? university,
+    List<String>? alternatePickupPoints,
+    String? vehicle,
+    String? licensePlate,
+    List<String>? servedInstitutions,
+    String? defaultListDeadline,
+  }) async {
+    final user = currentUser;
+    if (user == null) {
+      throw const AuthFailure('Usuario nao autenticado.');
+    }
+
+    final trimmedUniversity = university?.trim();
+    if (trimmedUniversity != null) {
+      final currentProfile = await loadUserProfile(user.uid);
+      final existingUniversity = currentProfile?.university?.trim() ?? '';
+      if (existingUniversity.isNotEmpty &&
+          trimmedUniversity != existingUniversity) {
+        throw const AuthFailure(
+          'A instituicao nao pode ser alterada depois de definida.',
+        );
+      }
+    }
+
+    final updates = <String, dynamic>{
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    if (name != null) {
+      updates['name'] = name.trim();
+    }
+    if (phone != null) {
+      updates['phone'] = phone.trim();
+    }
+    if (address != null) {
+      updates['address'] = address.trim();
+    }
+    if (defaultPickupPoint != null) {
+      updates['defaultPickupPoint'] = defaultPickupPoint.trim();
+    }
+    if (trimmedUniversity != null) {
+      updates['university'] = trimmedUniversity;
+    }
+    if (alternatePickupPoints != null) {
+      updates['alternatePickupPoints'] = alternatePickupPoints
+          .map((point) => point.trim())
+          .where((point) => point.isNotEmpty)
+          .toList();
+    }
+    if (vehicle != null) {
+      updates['vehicle'] = vehicle.trim();
+    }
+    if (licensePlate != null) {
+      updates['licensePlate'] = licensePlate.trim();
+    }
+    if (servedInstitutions != null) {
+      updates['servedInstitutions'] = servedInstitutions
+          .map((institution) => institution.trim())
+          .where((institution) => institution.isNotEmpty)
+          .toList();
+    }
+    if (defaultListDeadline != null) {
+      updates['defaultListDeadline'] = defaultListDeadline.trim();
+    }
+
+    try {
+      await _users.doc(user.uid).update(updates);
+      return loadUserProfile(user.uid);
+    } on FirebaseException catch (error) {
+      throw AuthFailure(firebaseMessageFor(error));
+    }
+  }
+
+  Future<List<AppUserProfile>> loadCurrentDriverStudents() async {
+    final driver = await loadCurrentUserProfile();
+    if (driver == null) {
+      throw const AuthFailure('Usuario nao autenticado.');
+    }
+    if (driver.role != AppUserRole.motorista) {
+      throw const AuthFailure('Apenas motoristas podem gerenciar alunos.');
+    }
+    if (driver.studentUids.isEmpty) {
+      return const [];
+    }
+
+    try {
+      final students = <AppUserProfile>[];
+      for (final uid in driver.studentUids) {
+        final student = await loadUserProfile(uid);
+        if (student != null && student.role == AppUserRole.aluno) {
+          students.add(student);
+        }
+      }
+      students.sort((a, b) => a.name.compareTo(b.name));
+      return students;
+    } on FirebaseException catch (error) {
+      throw AuthFailure(firebaseMessageFor(error));
+    }
+  }
+
+  Future<void> addStudentToCurrentDriverByDocument(String document) async {
+    final driver = await loadCurrentUserProfile();
+    if (driver == null) {
+      throw const AuthFailure('Usuario nao autenticado.');
+    }
+    if (driver.role != AppUserRole.motorista) {
+      throw const AuthFailure('Apenas motoristas podem gerenciar alunos.');
+    }
+
+    final trimmedDocument = document.trim();
+    if (trimmedDocument.isEmpty) {
+      throw const AuthFailure('Informe o CPF do aluno.');
+    }
+
+    try {
+      final snapshot = await _users
+          .where('document', isEqualTo: trimmedDocument)
+          .limit(5)
+          .get();
+      final studentDoc = snapshot.docs
+          .where(
+            (doc) => doc.data()['role'] == AppUserRole.aluno.firestoreValue,
+          )
+          .firstOrNull;
+
+      if (studentDoc == null) {
+        throw const AuthFailure('Nenhum aluno encontrado com esse CPF.');
+      }
+
+      if (driver.studentUids.contains(studentDoc.id)) {
+        throw const AuthFailure('Este aluno ja esta na sua lista.');
+      }
+
+      final studentProfile = AppUserProfile.fromFirestore(
+        studentDoc.id,
+        studentDoc.data(),
+      );
+      final existingDriverUid = studentProfile.driverUid?.trim() ?? '';
+      if (existingDriverUid.isNotEmpty && existingDriverUid != driver.uid) {
+        throw const AuthFailure(
+          'Este aluno ja esta vinculado a outro motorista.',
+        );
+      }
+
+      final batch = _firestore.batch();
+      batch.update(_users.doc(driver.uid), {
+        'studentUids': FieldValue.arrayUnion([studentDoc.id]),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      batch.update(studentDoc.reference, {
+        'driverUid': driver.uid,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      await batch.commit();
+    } on AuthFailure {
+      rethrow;
+    } on FormatException {
+      throw const AuthFailure('Perfil do aluno invalido.');
+    } on FirebaseException catch (error) {
+      throw AuthFailure(firebaseMessageFor(error));
+    }
+  }
+
+  Future<void> removeStudentFromCurrentDriver(String studentUid) async {
+    final driver = await loadCurrentUserProfile();
+    if (driver == null) {
+      throw const AuthFailure('Usuario nao autenticado.');
+    }
+    if (driver.role != AppUserRole.motorista) {
+      throw const AuthFailure('Apenas motoristas podem gerenciar alunos.');
+    }
+
+    final trimmedStudentUid = studentUid.trim();
+    if (trimmedStudentUid.isEmpty) {
+      throw const AuthFailure('Aluno invalido.');
+    }
+
+    try {
+      final studentRef = _users.doc(trimmedStudentUid);
+      final studentSnapshot = await studentRef.get();
+      final studentData = studentSnapshot.data();
+
+      final batch = _firestore.batch();
+      batch.update(_users.doc(driver.uid), {
+        'studentUids': FieldValue.arrayRemove([trimmedStudentUid]),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (studentSnapshot.exists &&
+          studentData != null &&
+          studentData['driverUid'] == driver.uid) {
+        batch.update(studentRef, {
+          'driverUid': FieldValue.delete(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
+    } on FirebaseException catch (error) {
+      throw AuthFailure(firebaseMessageFor(error));
+    }
+  }
+
   Future<void> signOut() => _firebaseAuth.signOut();
 
   CollectionReference<Map<String, dynamic>> get _users =>
