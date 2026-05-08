@@ -1,54 +1,25 @@
 // financeiro_screen.dart
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:niccioli/app/theme/app_colors.dart';
 import 'package:niccioli/app/views/widgets/notification_badge.dart';
-import 'package:niccioli/app/views/widgets/status_badge.dart';
 import 'package:niccioli/app/screens/notification/notification_screen.dart';
 
 // --- Model ---
 
-class Parcela {
+class BoletoAluno {
   final String data;
-  final String nome;
-  final double valor;
-  final bool pago;
+  final String nomeAluno;
+  final String universidade;
 
-  const Parcela({
+  const BoletoAluno({
     required this.data,
-    required this.nome,
-    required this.valor,
-    this.pago = false,
+    required this.nomeAluno,
+    required this.universidade,
   });
-
-  StatusBadgeType get status => _calcularStatus(data, pago: pago);
-
-  static StatusBadgeType _calcularStatus(String data, {bool pago = false}) {
-    if (pago) return StatusBadgeType.pago;
-
-    final partes = data.split('/');
-    final mes = int.parse(partes[1]);
-    final ano = int.parse(partes[2]);
-
-    final hoje = DateTime.now();
-    final mesAtual = DateTime(hoje.year, hoje.month);
-    final mesVencimento = DateTime(ano, mes);
-
-    // Calcula mês seguinte sem overflow
-    final mesSeguinte = hoje.month == 12
-        ? DateTime(hoje.year + 1, 1)
-        : DateTime(hoje.year, hoje.month + 1);
-
-    debugPrint(
-      'data=$data | venc=$mesVencimento | atual=$mesAtual | seguinte=$mesSeguinte',
-    );
-
-    if (mesVencimento == mesSeguinte) return StatusBadgeType.emAberto;
-    if (mesVencimento == mesAtual) return StatusBadgeType.aVencer;
-    if (mesVencimento.isBefore(mesAtual)) return StatusBadgeType.vencido;
-
-    return StatusBadgeType.emAberto;
-  }
 }
 
 // --- Screen ---
@@ -61,40 +32,76 @@ class FinanceiroScreen extends StatefulWidget {
 }
 
 class _FinanceiroScreenState extends State<FinanceiroScreen> {
-  StatusBadgeType? _filtroAtivo;
+  String? _filtroAtivo;
+  late final Future<List<BoletoAluno>> _alunosFuture;
 
-  final List<Parcela> _parcelas = const [
-    Parcela(
-      data: '10/06/2026', // mês seguinte → emAberto
-      nome: 'Niccioli Viagens e Turismos',
-      valor: 399.99,
-    ),
-    Parcela(
-      data: '15/05/2026', // mês atual → aVencer
-      nome: 'Niccioli Viagens e Turismos',
-      valor: 399.99,
-    ),
-    Parcela(
-      data: '20/03/2026', // mês passado, não pago → vencido
-      nome: 'Niccioli Viagens e Turismos',
-      valor: 399.99,
-    ),
-    Parcela(
-      data: '20/03/2026', // mês passado, pago → pago
-      nome: 'Niccioli Viagens e Turismos',
-      valor: 399.99,
-      pago: true,
-    ),
-    Parcela(
-      data: '10/05/2026', // mês atual, pago → pago
-      nome: 'Niccioli Viagens e Turismos',
-      valor: 199.99,
-      pago: true,
-    ),
-  ];
-  List<Parcela> get _parcelasFiltradas => _filtroAtivo == null
-      ? _parcelas
-      : _parcelas.where((p) => p.status == _filtroAtivo).toList();
+  @override
+  void initState() {
+    super.initState();
+    _alunosFuture = _carregarAlunos();
+  }
+
+  Future<List<BoletoAluno>> _carregarAlunos() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw Exception('Usuário não autenticado.');
+
+    // 1. Lê o documento de transporte do motorista logado
+    final transportSnap = await FirebaseFirestore.instance
+        .collection('transport')
+        .where('driverUid', isEqualTo: uid)
+        .limit(1)
+        .get();
+
+    if (transportSnap.docs.isEmpty) return <BoletoAluno>[];
+
+    final transportData = transportSnap.docs.first.data();
+    final today = DateFormat('dd/MM/yyyy').format(DateTime.now());
+
+    // 2. Tenta studentSummaries (denormalizado, mesmo documento, sem N+1)
+    final rawSummaries = transportData['studentSummaries'];
+    if (rawSummaries is Map<String, dynamic> && rawSummaries.isNotEmpty) {
+      final lista = rawSummaries.entries.map<BoletoAluno>((e) {
+        final v = e.value as Map<String, dynamic>? ?? {};
+        return BoletoAluno(
+          data: today,
+          nomeAluno: (v['name'] as String?) ?? '—',
+          universidade: (v['university'] as String?) ?? '—',
+        );
+      }).toList();
+      lista.sort((a, b) => a.nomeAluno.compareTo(b.nomeAluno));
+      return lista;
+    }
+
+    // 3. Fallback: lê cada aluno na coleção users via studentUids
+    final studentUids =
+        (transportData['studentUids'] as List<dynamic>?)
+            ?.whereType<String>()
+            .toList() ??
+        <String>[];
+
+    if (studentUids.isEmpty) return <BoletoAluno>[];
+
+    final alunos = <BoletoAluno>[];
+    for (final studentUid in studentUids) {
+      final userSnap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(studentUid)
+          .get();
+      final userData = userSnap.data();
+      if (userData != null) {
+        alunos.add(
+          BoletoAluno(
+            data: today,
+            nomeAluno: (userData['name'] as String?) ?? '—',
+            universidade: (userData['university'] as String?) ?? '—',
+          ),
+        );
+      }
+    }
+
+    alunos.sort((a, b) => a.nomeAluno.compareTo(b.nomeAluno));
+    return alunos;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,49 +124,108 @@ class _FinanceiroScreenState extends State<FinanceiroScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 12),
-          _FiltroBar(
-            filtroAtivo: _filtroAtivo,
-            onFiltroChanged: (status) => setState(() => _filtroAtivo = status),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: _parcelasFiltradas.isEmpty
-                ? const Center(
-                    child: Text(
-                      'Nenhum boleto encontrado.',
-                      style: TextStyle(color: Colors.white38),
+      body: FutureBuilder<List<BoletoAluno>>(
+        future: _alunosFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.orange),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${snapshot.error}',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () =>
+                          setState(() => _alunosFuture = _carregarAlunos()),
+                      child: const Text(
+                        'Tentar novamente',
+                        style: TextStyle(color: AppColors.orange),
+                      ),
                     ),
-                    itemCount: _parcelasFiltradas.length,
-                    separatorBuilder: (context, index) => Divider(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      height: 1,
-                    ),
-                    itemBuilder: (_, index) =>
-                        _ParcelaItem(parcela: _parcelasFiltradas[index]),
-                  ),
-          ),
-        ],
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final alunos = snapshot.data ?? [];
+          final universidades = alunos
+              .map((a) => a.universidade)
+              .toSet()
+              .toList();
+          final alunosFiltrados = _filtroAtivo == null
+              ? alunos
+              : alunos.where((a) => a.universidade == _filtroAtivo).toList();
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 12),
+              _FiltroBar(
+                universidades: universidades,
+                filtroAtivo: _filtroAtivo,
+                onFiltroChanged: (uni) => setState(() => _filtroAtivo = uni),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: alunosFiltrados.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Nenhum aluno encontrado.',
+                          style: TextStyle(color: Colors.white38),
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        itemCount: alunosFiltrados.length,
+                        separatorBuilder: (_, _) => Divider(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          height: 1,
+                        ),
+                        itemBuilder: (_, index) =>
+                            _AlunoItem(aluno: alunosFiltrados[index]),
+                      ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
+// --- Section Header ---
+
 // --- Filter Bar ---
 
 class _FiltroBar extends StatelessWidget {
-  final StatusBadgeType? filtroAtivo;
-  final ValueChanged<StatusBadgeType?> onFiltroChanged;
+  final List<String> universidades;
+  final String? filtroAtivo;
+  final ValueChanged<String?> onFiltroChanged;
 
-  const _FiltroBar({required this.filtroAtivo, required this.onFiltroChanged});
+  const _FiltroBar({
+    required this.universidades,
+    required this.filtroAtivo,
+    required this.onFiltroChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -173,29 +239,28 @@ class _FiltroBar extends StatelessWidget {
             ativo: filtroAtivo == null,
             onTap: () => onFiltroChanged(null),
           ),
-          const SizedBox(width: 8),
-          _FiltroChip(
-            label: 'Em Aberto',
-            ativo: filtroAtivo == StatusBadgeType.emAberto,
-            onTap: () => onFiltroChanged(StatusBadgeType.emAberto),
+          ...universidades.map(
+            (uni) => Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: _FiltroChip(
+                label: uni,
+                ativo: filtroAtivo == uni,
+                onTap: () => onFiltroChanged(uni),
+              ),
+            ),
           ),
           const SizedBox(width: 8),
-          _FiltroChip(
-            label: 'A Vencer',
-            ativo: filtroAtivo == StatusBadgeType.aVencer,
-            onTap: () => onFiltroChanged(StatusBadgeType.aVencer),
-          ),
-          const SizedBox(width: 8),
-          _FiltroChip(
-            label: 'Vencidos',
-            ativo: filtroAtivo == StatusBadgeType.vencido,
-            onTap: () => onFiltroChanged(StatusBadgeType.vencido),
-          ),
-          const SizedBox(width: 8),
-          _FiltroChip(
-            label: 'Pagos',
-            ativo: filtroAtivo == StatusBadgeType.pago,
-            onTap: () => onFiltroChanged(StatusBadgeType.pago),
+          GestureDetector(
+            onTap: () {},
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white24),
+              ),
+              child: const Icon(Icons.add, color: Colors.white70, size: 16),
+            ),
           ),
         ],
       ),
@@ -241,12 +306,12 @@ class _FiltroChip extends StatelessWidget {
   }
 }
 
-// --- Parcela Item ---
+// --- Aluno Item ---
 
-class _ParcelaItem extends StatelessWidget {
-  final Parcela parcela;
+class _AlunoItem extends StatelessWidget {
+  final BoletoAluno aluno;
 
-  const _ParcelaItem({required this.parcela});
+  const _AlunoItem({required this.aluno});
 
   @override
   Widget build(BuildContext context) {
@@ -260,12 +325,12 @@ class _ParcelaItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  parcela.data,
+                  aluno.data,
                   style: const TextStyle(color: Colors.white38, fontSize: 11),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  parcela.nome,
+                  aluno.nomeAluno,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 15,
@@ -273,16 +338,25 @@ class _ParcelaItem extends StatelessWidget {
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  'R\$ ${parcela.valor.toStringAsFixed(2).replaceAll('.', ',')}',
-                  style: const TextStyle(color: Colors.white54, fontSize: 13),
-                ),
               ],
             ),
           ),
           const SizedBox(width: 12),
-          StatusBadge(status: parcela.status),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF162030),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              aluno.universidade,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
         ],
       ),
     );
