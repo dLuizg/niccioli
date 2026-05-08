@@ -115,7 +115,13 @@ class _CadastroScreenState extends State<CadastroScreen> {
                                 AppDropdownField<String>(
                                   value: _viewmodel.selectedUniversity,
                                   hintText: 'Selecione sua universidade',
-                                  items: const ['UNIFEOB', 'UNIFAE'],
+                                  items: const [
+                                    'UNIFAE',
+                                    'UNIFEOB',
+                                    'UNIFEOB Fazenda',
+                                    'IF',
+                                    'UNESP',
+                                  ],
                                   onChanged: _isSubmitting
                                       ? null
                                       : (value) {

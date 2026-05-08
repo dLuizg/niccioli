@@ -78,7 +78,9 @@ class AppDropdownField<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<T>(
+      key: ValueKey<T?>(value),
       initialValue: value,
+      isExpanded: true,
       icon: const Icon(Icons.arrow_drop_down, color: Colors.black),
       dropdownColor: Colors.white,
       decoration: InputDecoration(
@@ -100,7 +102,10 @@ class AppDropdownField<T> extends StatelessWidget {
           .map(
             (item) => DropdownMenuItem<T>(
               value: item,
-              child: Text(itemLabelBuilder?.call(item) ?? item.toString()),
+              child: Text(
+                itemLabelBuilder?.call(item) ?? item.toString(),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           )
           .toList(),
