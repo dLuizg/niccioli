@@ -84,7 +84,6 @@ class AuthService {
     String? defaultPickupPoint,
     String? university,
     List<String>? alternatePickupPoints,
-    List<String>? servedInstitutions,
     String? defaultListDeadline,
   }) async {
     final user = currentUser;
@@ -126,12 +125,6 @@ class AuthService {
       updates['alternatePickupPoints'] = alternatePickupPoints
           .map((point) => point.trim())
           .where((point) => point.isNotEmpty)
-          .toList();
-    }
-    if (servedInstitutions != null) {
-      updates['servedInstitutions'] = servedInstitutions
-          .map((institution) => institution.trim())
-          .where((institution) => institution.isNotEmpty)
           .toList();
     }
     if (defaultListDeadline != null) {

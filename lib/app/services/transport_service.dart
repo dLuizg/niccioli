@@ -27,7 +27,7 @@ class TransportService {
       throw const AuthFailure('Usuario nao autenticado.');
     }
 
-    return _loadDriverTransport(driver.uid);
+    return _loadOrMigrateDriverTransport(driver);
   }
 
   Future<TransportProfile?> loadCurrentStudentTransport() async {
@@ -87,6 +87,27 @@ class TransportService {
         'driverUid': driver.uid,
         'driverName': driver.name,
         'defaultListDeadline': deadline.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } on FirebaseException catch (error) {
+      throw AuthFailure(AuthService.firebaseMessageFor(error));
+    }
+  }
+
+  Future<void> updateCurrentDriverServedInstitutions(
+    List<String> institutions,
+  ) async {
+    final driver = await _loadCurrentDriverProfile();
+    if (driver == null) {
+      throw const AuthFailure('Usuario nao autenticado.');
+    }
+
+    final transportRef = await _loadOrCreateDriverTransportRef(driver);
+    try {
+      await transportRef.set({
+        'driverUid': driver.uid,
+        'driverName': driver.name,
+        'servedInstitutions': _cleanStringList(institutions),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } on FirebaseException catch (error) {
@@ -306,10 +327,7 @@ class TransportService {
 
   Future<TransportProfile?> _loadDriverTransport(String driverUid) async {
     try {
-      final snapshot = await _transport
-          .where('driverUid', isEqualTo: driverUid)
-          .limit(1)
-          .get();
+      final snapshot = await _loadDriverTransportSnapshot(driverUid);
       if (snapshot.docs.isEmpty) {
         return null;
       }
@@ -319,6 +337,43 @@ class TransportService {
     } on FirebaseException catch (error) {
       throw AuthFailure(AuthService.firebaseMessageFor(error));
     }
+  }
+
+  Future<TransportProfile?> _loadOrMigrateDriverTransport(
+    AppUserProfile driver,
+  ) async {
+    try {
+      final snapshot = await _loadDriverTransportSnapshot(driver.uid);
+      if (snapshot.docs.isEmpty) {
+        return null;
+      }
+
+      final doc = snapshot.docs.first;
+      final data = doc.data();
+      if (data.containsKey('servedInstitutions')) {
+        return TransportProfile.fromFirestore(doc);
+      }
+
+      final legacyInstitutions = await _loadLegacyServedInstitutions(
+        driver.uid,
+      );
+      await doc.reference.set({
+        'servedInstitutions': legacyInstitutions,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      final migratedDoc = await doc.reference.get();
+      return TransportProfile.fromFirestore(migratedDoc);
+    } on FormatException {
+      throw const AuthFailure('Transporte invalido.');
+    } on FirebaseException catch (error) {
+      throw AuthFailure(AuthService.firebaseMessageFor(error));
+    }
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> _loadDriverTransportSnapshot(
+    String driverUid,
+  ) {
+    return _transport.where('driverUid', isEqualTo: driverUid).limit(1).get();
   }
 
   Future<DocumentReference<Map<String, dynamic>>>
@@ -332,9 +387,11 @@ class TransportService {
     }
 
     final ref = _transport.doc();
+    final legacyInstitutions = await _loadLegacyServedInstitutions(driver.uid);
     await ref.set({
       'driverUid': driver.uid,
       'driverName': driver.name,
+      'servedInstitutions': legacyInstitutions,
       'studentUids': <String>[],
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
@@ -356,6 +413,24 @@ class TransportService {
       }
     }
     return null;
+  }
+
+  Future<List<String>> _loadLegacyServedInstitutions(String driverUid) async {
+    final snapshot = await _users.doc(driverUid).get();
+    final data = snapshot.data();
+    if (!snapshot.exists || data == null) {
+      return const [];
+    }
+    return _cleanStringList(data['servedInstitutions'] as List<dynamic>?);
+  }
+
+  List<String> _cleanStringList(Iterable<dynamic>? values) {
+    return values
+            ?.whereType<String>()
+            .map((value) => value.trim())
+            .where((value) => value.isNotEmpty)
+            .toList() ??
+        const [];
   }
 
   Future<QueryDocumentSnapshot<Map<String, dynamic>>?>

@@ -51,6 +51,7 @@ class TransportProfile {
     this.vehicleModel,
     this.licensePlate,
     this.defaultListDeadline,
+    this.servedInstitutions = const [],
     this.studentUids = const [],
   });
 
@@ -60,6 +61,7 @@ class TransportProfile {
   final String? vehicleModel;
   final String? licensePlate;
   final String? defaultListDeadline;
+  final List<String> servedInstitutions;
   final List<String> studentUids;
 
   factory TransportProfile.fromFirestore(
@@ -77,6 +79,11 @@ class TransportProfile {
       vehicleModel: data['vehicleModel'] as String?,
       licensePlate: data['licensePlate'] as String?,
       defaultListDeadline: data['defaultListDeadline'] as String?,
+      servedInstitutions:
+          (data['servedInstitutions'] as List<dynamic>?)
+              ?.whereType<String>()
+              .toList() ??
+          const [],
       studentUids:
           (data['studentUids'] as List<dynamic>?)
               ?.whereType<String>()

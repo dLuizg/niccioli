@@ -103,12 +103,12 @@ class _AccountScreenState extends State<AccountScreen> {
     await _saveProfileChange(() => onSave(value));
   }
 
-  Future<void> _manageInstitutions(AppUserProfile profile) async {
+  Future<void> _manageInstitutions(TransportProfile? transport) async {
     final selected = await showDialog<List<String>>(
       context: context,
       builder: (context) => _InstitutionsDialog(
         options: _driverInstitutions,
-        selectedValues: profile.servedInstitutions,
+        selectedValues: transport?.servedInstitutions ?? const [],
       ),
     );
 
@@ -117,8 +117,8 @@ class _AccountScreenState extends State<AccountScreen> {
     }
 
     await _saveProfileChange(
-      () => AuthService.instance.updateCurrentUserProfile(
-        servedInstitutions: selected,
+      () => TransportService.instance.updateCurrentDriverServedInstitutions(
+        selected,
       ),
     );
   }
@@ -377,7 +377,7 @@ class _AccountScreenState extends State<AccountScreen> {
             onEditDefaultListDeadline: () => _pickDefaultListDeadline(
               transport?.defaultListDeadline ?? profile.defaultListDeadline,
             ),
-            onManageInstitutions: () => _manageInstitutions(profile),
+            onManageInstitutions: () => _manageInstitutions(transport),
             onManageStudents: _openStudentManager,
             onAddAlternatePoint: _addAlternatePoint,
             onEditAlternatePoint: _editAlternatePoint,
@@ -666,7 +666,7 @@ class _DriverAccountFields extends StatelessWidget {
         _AccountInfoTile(
           icon: Icons.business_outlined,
           label:
-              'Instituicoes atendidas: ${displayList(profile.servedInstitutions)}',
+              'Instituicoes atendidas: ${displayList(transport?.servedInstitutions ?? const [])}',
           onTap: isSaving ? null : onManageInstitutions,
         ),
         _AccountInfoTile(

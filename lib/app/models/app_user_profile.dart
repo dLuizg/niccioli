@@ -47,7 +47,6 @@ class AppUserProfile {
     this.alternatePickupPoints = const [],
     this.vehicle,
     this.licensePlate,
-    this.servedInstitutions = const [],
     this.studentUids = const [],
     this.driverUid,
     this.defaultListDeadline,
@@ -65,7 +64,6 @@ class AppUserProfile {
   final List<String> alternatePickupPoints;
   final String? vehicle;
   final String? licensePlate;
-  final List<String> servedInstitutions;
   final List<String> studentUids;
   final String? driverUid;
   final String? defaultListDeadline;
@@ -95,11 +93,6 @@ class AppUserProfile {
           const [],
       vehicle: data['vehicle'] as String?,
       licensePlate: data['licensePlate'] as String?,
-      servedInstitutions:
-          (data['servedInstitutions'] as List<dynamic>?)
-              ?.whereType<String>()
-              .toList() ??
-          const [],
       studentUids:
           (data['studentUids'] as List<dynamic>?)
               ?.whereType<String>()
