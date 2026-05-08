@@ -4,6 +4,7 @@ import 'package:niccioli/app/screens/perfil/profile_screen.dart';
 import '../screens/contrato_aluno/contrato_aluno.dart';
 import '../screens/financeiro/financeiro_screen.dart';
 import '../screens/home_aluno/home_aluno.dart';
+import '../screens/home_motorista/home_mototista.dart';
 import '../screens/mapa/mapa_screen.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_bottom_nav.dart';
@@ -80,7 +81,7 @@ class _RoleNavigationShellState extends State<RoleNavigationShell> {
       _NavigationDestinationData(
         screen: role == AppUserRole.aluno
             ? const HomeAluno()
-            : const _PlaceholderTabScreen(title: 'Home Motorista'),
+            : const HomeMotorista(),
       ),
       _NavigationDestinationData(
         screen: role == AppUserRole.aluno

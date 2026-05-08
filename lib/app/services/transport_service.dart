@@ -234,6 +234,31 @@ class TransportService {
     }
   }
 
+  Future<Map<String, PresenceResponse>> loadTodayDriverPresences() async {
+    final transport = await loadCurrentDriverTransport();
+    if (transport == null) return {};
+    try {
+      final snapshot = await _transport
+          .doc(transport.id)
+          .collection(presenceListCollection)
+          .doc(_todayId())
+          .get();
+      final data = snapshot.data();
+      final responses = data?['responses'];
+      if (responses is! Map<String, dynamic>) return {};
+      final result = <String, PresenceResponse>{};
+      for (final entry in responses.entries) {
+        if (entry.value is Map<String, dynamic>) {
+          result[entry.key] =
+              PresenceResponse.fromMap(entry.value as Map<String, dynamic>);
+        }
+      }
+      return result;
+    } on FirebaseException catch (error) {
+      throw AuthFailure(AuthService.firebaseMessageFor(error));
+    }
+  }
+
   Future<void> updateTodayPresenceResponse({
     String? outboundStatus,
     String? returnStatus,
