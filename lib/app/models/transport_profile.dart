@@ -52,7 +52,6 @@ class TransportProfile {
     this.licensePlate,
     this.defaultListDeadline,
     this.studentUids = const [],
-    this.studentSummaries = const {},
   });
 
   final String id;
@@ -62,7 +61,6 @@ class TransportProfile {
   final String? licensePlate;
   final String? defaultListDeadline;
   final List<String> studentUids;
-  final Map<String, TransportStudentSummary> studentSummaries;
 
   factory TransportProfile.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> snapshot,
@@ -70,20 +68,6 @@ class TransportProfile {
     final data = snapshot.data();
     if (data == null) {
       throw const FormatException('Transporte sem dados.');
-    }
-
-    final rawSummaries = data['studentSummaries'];
-    final summaries = <String, TransportStudentSummary>{};
-    if (rawSummaries is Map<String, dynamic>) {
-      for (final entry in rawSummaries.entries) {
-        final value = entry.value;
-        if (value is Map<String, dynamic>) {
-          summaries[entry.key] = TransportStudentSummary.fromMap(
-            entry.key,
-            value,
-          );
-        }
-      }
     }
 
     return TransportProfile(
@@ -98,7 +82,6 @@ class TransportProfile {
               ?.whereType<String>()
               .toList() ??
           const [],
-      studentSummaries: summaries,
     );
   }
 }

@@ -903,7 +903,7 @@ class _DriverStudentsPageState extends State<_DriverStudentsPage> {
   static const _emptyValue = 'Preencha aqui';
 
   final _cpfController = TextEditingController();
-  late Future<List<AppUserProfile>> _studentsFuture;
+  late Future<List<TransportStudentSummary>> _studentsFuture;
   bool _isAdding = false;
   String? _removingStudentUid;
   String? _message;
@@ -962,7 +962,7 @@ class _DriverStudentsPageState extends State<_DriverStudentsPage> {
     }
   }
 
-  Future<void> _confirmRemoveStudent(AppUserProfile student) async {
+  Future<void> _confirmRemoveStudent(TransportStudentSummary student) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1073,7 +1073,7 @@ class _DriverStudentsPageState extends State<_DriverStudentsPage> {
             _AccountErrorMessage(message: _message!),
           ],
           const SizedBox(height: 18),
-          FutureBuilder<List<AppUserProfile>>(
+          FutureBuilder<List<TransportStudentSummary>>(
             future: _studentsFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState != ConnectionState.done) {

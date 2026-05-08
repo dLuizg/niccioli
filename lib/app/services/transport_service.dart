@@ -14,6 +14,7 @@ class TransportService {
   static final TransportService instance = TransportService();
 
   static const presenceListCollection = 'presence-list';
+  static const studentsListCollection = 'students-list';
 
   final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
@@ -114,7 +115,7 @@ class TransportService {
     }
   }
 
-  Future<List<AppUserProfile>> loadCurrentDriverStudents() async {
+  Future<List<TransportStudentSummary>> loadCurrentDriverStudents() async {
     final driver = await _loadCurrentDriverProfile();
     if (driver == null) {
       throw const AuthFailure('Usuario nao autenticado.');
@@ -126,11 +127,13 @@ class TransportService {
     }
 
     try {
-      final students = <AppUserProfile>[];
-      for (final uid in transport.studentUids) {
-        final student = await _loadUserProfile(uid);
-        if (student != null && student.role == AppUserRole.aluno) {
-          students.add(student);
+      final snapshot = await _studentsListRef(transport.id).get();
+      final students = <TransportStudentSummary>[];
+      for (final doc in snapshot.docs) {
+        try {
+          students.add(TransportStudentSummary.fromMap(doc.id, doc.data()));
+        } on FormatException {
+          continue;
         }
       }
       students.sort((a, b) => a.name.compareTo(b.name));
@@ -162,18 +165,10 @@ class TransportService {
         studentDoc.data(),
       );
 
-      await _ensureStudentIsAvailable(studentProfile, driver.uid);
-
-      final transportRef = await _loadOrCreateDriverTransportRef(driver);
-      await transportRef.set({
-        'driverUid': driver.uid,
-        'driverName': driver.name,
-        'studentUids': FieldValue.arrayUnion([studentProfile.uid]),
-        'studentSummaries': {
-          studentProfile.uid: _summaryFromProfile(studentProfile).toMap(),
-        },
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      await _upsertStudentForDriver(
+        driver: driver,
+        studentProfile: studentProfile,
+      );
     } on AuthFailure {
       rethrow;
     } on FormatException {
@@ -200,11 +195,16 @@ class TransportService {
     }
 
     try {
-      await _transport.doc(transport.id).update({
+      final transportRef = _transport.doc(transport.id);
+      final batch = _firestore.batch();
+      batch.update(transportRef, {
         'studentUids': FieldValue.arrayRemove([trimmedStudentUid]),
-        FieldPath(['studentSummaries', trimmedStudentUid]): FieldValue.delete(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
+      batch.delete(
+        transportRef.collection(studentsListCollection).doc(trimmedStudentUid),
+      );
+      await batch.commit();
     } on FirebaseException catch (error) {
       throw AuthFailure(AuthService.firebaseMessageFor(error));
     }
@@ -336,7 +336,6 @@ class TransportService {
       'driverUid': driver.uid,
       'driverName': driver.name,
       'studentUids': <String>[],
-      'studentSummaries': <String, dynamic>{},
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -359,25 +358,65 @@ class TransportService {
     return null;
   }
 
-  Future<void> _ensureStudentIsAvailable(
-    AppUserProfile student,
-    String driverUid,
-  ) async {
+  Future<QueryDocumentSnapshot<Map<String, dynamic>>?>
+  _loadTransportAssignedToStudent(String studentUid) async {
     final transportSnapshot = await _transport
-        .where('studentUids', arrayContains: student.uid)
+        .where('studentUids', arrayContains: studentUid)
         .limit(1)
         .get();
     if (transportSnapshot.docs.isEmpty) {
-      return;
+      return null;
     }
 
-    final assignedTransport = TransportProfile.fromFirestore(
-      transportSnapshot.docs.first,
+    return transportSnapshot.docs.first;
+  }
+
+  Future<void> _upsertStudentForDriver({
+    required AppUserProfile driver,
+    required AppUserProfile studentProfile,
+  }) async {
+    final assignedTransportDoc = await _loadTransportAssignedToStudent(
+      studentProfile.uid,
     );
-    if (assignedTransport.driverUid == driverUid) {
-      throw const AuthFailure('Este aluno ja esta na sua lista.');
+    final transportRef = assignedTransportDoc?.reference;
+    if (assignedTransportDoc != null) {
+      final assignedTransport = TransportProfile.fromFirestore(
+        assignedTransportDoc,
+      );
+      if (assignedTransport.driverUid != driver.uid) {
+        throw const AuthFailure(
+          'Este aluno ja esta vinculado a outro motorista.',
+        );
+      }
     }
-    throw const AuthFailure('Este aluno ja esta vinculado a outro motorista.');
+
+    final currentDriverTransportRef =
+        transportRef ?? await _loadOrCreateDriverTransportRef(driver);
+    final studentSummaryRef = currentDriverTransportRef
+        .collection(studentsListCollection)
+        .doc(studentProfile.uid);
+    final batch = _firestore.batch();
+    batch.set(currentDriverTransportRef, {
+      'driverUid': driver.uid,
+      'driverName': driver.name,
+      'studentUids': FieldValue.arrayUnion([studentProfile.uid]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    batch.set(studentSummaryRef, {
+      ..._summaryFromProfile(studentProfile).toMap(),
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    await batch.commit();
+
+    final verifiedSummary = await studentSummaryRef.get(
+      const GetOptions(source: Source.server),
+    );
+    if (!verifiedSummary.exists) {
+      throw const AuthFailure(
+        'Nao foi possivel criar o aluno na lista do transporte.',
+      );
+    }
   }
 
   TransportStudentSummary _summaryFromProfile(AppUserProfile profile) {
@@ -397,6 +436,12 @@ class TransportService {
         .doc(transport.id)
         .collection(presenceListCollection)
         .doc(_todayId());
+  }
+
+  CollectionReference<Map<String, dynamic>> _studentsListRef(
+    String transportId,
+  ) {
+    return _transport.doc(transportId).collection(studentsListCollection);
   }
 
   String _todayId() {
