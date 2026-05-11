@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:niccioli/app/screens/perfil/profile_detail_layout.dart';
+import 'package:niccioli/app/pages/perfil/profile_detail_layout.dart';
 import 'package:niccioli/app/theme/app_colors.dart';
 import 'package:niccioli/app/views/widgets/notification_card.dart';
 import 'package:niccioli/app/widgets/notification_button.dart';

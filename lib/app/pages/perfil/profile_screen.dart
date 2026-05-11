@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:niccioli/app/models/app_user_profile.dart';
-import 'package:niccioli/app/screens/login/login_screen.dart';
+import 'package:niccioli/app/pages/login/login_screen.dart';
 import 'package:niccioli/app/services/auth_service.dart';
 import 'package:niccioli/app/theme/app_colors.dart';
 

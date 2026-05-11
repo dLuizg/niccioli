@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:niccioli/app/screens/perfil/profile_detail_layout.dart';
+import 'package:niccioli/app/pages/perfil/profile_detail_layout.dart';
 import 'package:niccioli/app/theme/app_colors.dart';
 
 class SupportScreen extends StatelessWidget {

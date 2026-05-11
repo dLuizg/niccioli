@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:niccioli/app/models/app_user_profile.dart';
-import 'package:niccioli/app/screens/perfil/profile_screen.dart';
-import '../screens/contrato_aluno/contrato_aluno.dart';
-import '../screens/financeiro/financeiro_screen.dart';
-import '../screens/home_aluno/home_aluno.dart';
-import '../screens/mapa/mapa_screen.dart';
+import 'package:niccioli/app/pages/perfil/profile_screen.dart';
+import '../pages/contrato_aluno/contrato_aluno.dart';
+import '../pages/financeiro/financeiro_screen.dart';
+import '../pages/home_aluno/home_aluno.dart';
+import '../pages/mapa/mapa_screen.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_bottom_nav.dart';
 

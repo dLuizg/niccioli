@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:niccioli/app/navigation/role_navigation_shell.dart';
-import 'package:niccioli/app/screens/login/cadastro_screen.dart';
+import 'package:niccioli/app/pages/login/cadastro_screen.dart';
 import 'package:niccioli/app/services/auth_service.dart';
 import 'package:niccioli/app/theme/app_colors.dart';
 import 'package:niccioli/app/widgets/app_brand_logo.dart';

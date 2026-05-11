@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:niccioli/app/models/app_user_profile.dart';
 import 'package:niccioli/app/models/transport_profile.dart';
-import 'package:niccioli/app/screens/perfil/profile_detail_layout.dart';
+import 'package:niccioli/app/pages/perfil/profile_detail_layout.dart';
 import 'package:niccioli/app/services/auth_service.dart';
 import 'package:niccioli/app/services/transport_service.dart';
 import 'package:niccioli/app/theme/app_colors.dart';
