@@ -1,4 +1,4 @@
-![Diagrama de Classes](image-1.png)
+![Diagrama de Classes](generated/classes.png)
 
 @startuml
 title Sistema Niccioli - Diagrama de Classes

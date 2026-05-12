@@ -26,6 +26,8 @@ endif
 stop
 @enduml
 
+![UC01 - Realizar Login e Acesso Social](generated/fluxo-uc01.png)
+
 @startuml
 title UC02 - Gerenciar Presenca Diaria
 
@@ -49,6 +51,8 @@ endif
 stop
 @enduml
 
+![UC02 - Gerenciar Presenca Diaria](generated/fluxo-uc02.png)
+
 @startuml
 title UC03 - Gerenciar Perfil e Veiculo
 
@@ -70,6 +74,8 @@ endif
 
 stop
 @enduml
+
+![UC03 - Gerenciar Perfil e Veiculo](generated/fluxo-uc03.png)
 
 @startuml
 title UC04 - Solicitar Ponto Alternativo
@@ -93,6 +99,8 @@ endif
 stop
 @enduml
 
+![UC04 - Solicitar Ponto Alternativo](generated/fluxo-uc04.png)
+
 @startuml
 title UC05 - Monitoramento e Geofencing
 
@@ -113,6 +121,8 @@ endif
 
 stop
 @enduml
+
+![UC05 - Monitoramento e Geofencing](generated/fluxo-uc05.png)
 
 @startuml
 title UC06 - Gestao Financeira e Contrato
@@ -141,6 +151,8 @@ endif
 stop
 @enduml
 
+![UC06 - Gestao Financeira e Contrato](generated/fluxo-uc06.png)
+
 @startuml
 title UC07 - Solicitar Exclusao de Conta
 
@@ -164,6 +176,8 @@ endif
 stop
 @enduml
 
+![UC07 - Solicitar Exclusao de Conta](generated/fluxo-uc07.png)
+
 @startuml
 title UC08 - Consultar Assistente de IA
 
@@ -184,6 +198,8 @@ endif
 stop
 @enduml
 
+![UC08 - Consultar Assistente de IA](generated/fluxo-uc08.png)
+
 @startuml
 title UC09 - Informar Paradeiro da Van
 
@@ -202,6 +218,8 @@ endif
 
 stop
 @enduml
+
+![UC09 - Informar Paradeiro da Van](generated/fluxo-uc09.png)
 
 @startuml
 title UC10 - Pegar a Van em Ponto Diferente na Saida
@@ -226,3 +244,5 @@ endif
 
 stop
 @enduml
+
+![UC10 - Pegar a Van em Ponto Diferente na Saida](generated/fluxo-uc10.png)

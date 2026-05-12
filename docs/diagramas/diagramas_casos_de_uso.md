@@ -1,4 +1,4 @@
-![Diagrama de Casos de Uso](image.png)
+![Diagrama de Casos de Uso](generated/casos-uso.png)
 
 @startuml
 title Sistema Niccioli - Diagrama de Casos de Uso
