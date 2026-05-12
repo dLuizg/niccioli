@@ -7,18 +7,81 @@ import 'package:intl/intl.dart';
 import 'package:niccioli/app/theme/app_colors.dart';
 import 'package:niccioli/app/views/widgets/notification_badge.dart';
 import 'package:niccioli/app/screens/notification/notification_screen.dart';
+import 'package:niccioli/app/screens/financeiro/boleto_detalhe_screen.dart';
+
+// --- Enums ---
+
+enum StatusBoleto { emAberto, aVencer, vencido, pago }
+
+extension StatusBoletoExt on StatusBoleto {
+  String get label {
+    switch (this) {
+      case StatusBoleto.emAberto:
+        return 'Em aberto';
+      case StatusBoleto.aVencer:
+        return 'A vencer';
+      case StatusBoleto.vencido:
+        return 'Vencido';
+      case StatusBoleto.pago:
+        return 'Pago';
+    }
+  }
+
+  Color get cor {
+    switch (this) {
+      case StatusBoleto.emAberto:
+        return Colors.white54;
+      case StatusBoleto.aVencer:
+        return const Color(0xFFD4A017);
+      case StatusBoleto.vencido:
+        return const Color(0xFFE53935);
+      case StatusBoleto.pago:
+        return const Color(0xFF43A047);
+    }
+  }
+
+  Color get corFundo {
+    switch (this) {
+      case StatusBoleto.emAberto:
+        return Colors.white.withValues(alpha: 0.08);
+      case StatusBoleto.aVencer:
+        return const Color(0xFFD4A017).withValues(alpha: 0.15);
+      case StatusBoleto.vencido:
+        return const Color(0xFFE53935).withValues(alpha: 0.15);
+      case StatusBoleto.pago:
+        return const Color(0xFF43A047).withValues(alpha: 0.15);
+    }
+  }
+
+  static StatusBoleto fromString(String? value) {
+    switch (value) {
+      case 'aVencer':
+        return StatusBoleto.aVencer;
+      case 'vencido':
+        return StatusBoleto.vencido;
+      case 'pago':
+        return StatusBoleto.pago;
+      default:
+        return StatusBoleto.emAberto;
+    }
+  }
+}
 
 // --- Model ---
 
 class BoletoAluno {
+  final String studentUid;
   final String data;
   final String nomeAluno;
   final String universidade;
+  final StatusBoleto status;
 
   const BoletoAluno({
+    required this.studentUid,
     required this.data,
     required this.nomeAluno,
     required this.universidade,
+    required this.status,
   });
 }
 
@@ -33,7 +96,8 @@ class FinanceiroScreen extends StatefulWidget {
 
 class _FinanceiroScreenState extends State<FinanceiroScreen> {
   String? _filtroAtivo;
-  late final Future<List<BoletoAluno>> _alunosFuture;
+  String? _transportDocId;
+  late Future<List<BoletoAluno>> _alunosFuture;
 
   @override
   void initState() {
@@ -45,7 +109,6 @@ class _FinanceiroScreenState extends State<FinanceiroScreen> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) throw Exception('Usuário não autenticado.');
 
-    // 1. Lê o documento de transporte do motorista logado
     final transportSnap = await FirebaseFirestore.instance
         .collection('transport')
         .where('driverUid', isEqualTo: uid)
@@ -54,25 +117,30 @@ class _FinanceiroScreenState extends State<FinanceiroScreen> {
 
     if (transportSnap.docs.isEmpty) return <BoletoAluno>[];
 
-    final transportData = transportSnap.docs.first.data();
+    final transportDoc = transportSnap.docs.first;
+    _transportDocId = transportDoc.id;
+    final transportData = transportDoc.data();
     final today = DateFormat('dd/MM/yyyy').format(DateTime.now());
 
-    // 2. Tenta studentSummaries (denormalizado, mesmo documento, sem N+1)
+    final boletoStatus =
+        (transportData['boletoStatus'] as Map<String, dynamic>?) ?? {};
+
     final rawSummaries = transportData['studentSummaries'];
     if (rawSummaries is Map<String, dynamic> && rawSummaries.isNotEmpty) {
       final lista = rawSummaries.entries.map<BoletoAluno>((e) {
         final v = e.value as Map<String, dynamic>? ?? {};
         return BoletoAluno(
+          studentUid: e.key,
           data: today,
           nomeAluno: (v['name'] as String?) ?? '—',
           universidade: (v['university'] as String?) ?? '—',
+          status: StatusBoletoExt.fromString(boletoStatus[e.key] as String?),
         );
       }).toList();
       lista.sort((a, b) => a.nomeAluno.compareTo(b.nomeAluno));
       return lista;
     }
 
-    // 3. Fallback: lê cada aluno na coleção users via studentUids
     final studentUids =
         (transportData['studentUids'] as List<dynamic>?)
             ?.whereType<String>()
@@ -91,9 +159,13 @@ class _FinanceiroScreenState extends State<FinanceiroScreen> {
       if (userData != null) {
         alunos.add(
           BoletoAluno(
+            studentUid: studentUid,
             data: today,
             nomeAluno: (userData['name'] as String?) ?? '—',
             universidade: (userData['university'] as String?) ?? '—',
+            status: StatusBoletoExt.fromString(
+              boletoStatus[studentUid] as String?,
+            ),
           ),
         );
       }
@@ -200,8 +272,22 @@ class _FinanceiroScreenState extends State<FinanceiroScreen> {
                           color: Colors.white.withValues(alpha: 0.08),
                           height: 1,
                         ),
-                        itemBuilder: (_, index) =>
-                            _AlunoItem(aluno: alunosFiltrados[index]),
+                        itemBuilder: (_, index) {
+                          final aluno = alunosFiltrados[index];
+                          return _AlunoItem(
+                            aluno: aluno,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => BoletoDetalheScreen(
+                                  studentUid: aluno.studentUid,
+                                  nomeAluno: aluno.nomeAluno,
+                                  transportDocId: _transportDocId ?? '',
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
               ),
             ],
@@ -211,8 +297,6 @@ class _FinanceiroScreenState extends State<FinanceiroScreen> {
     );
   }
 }
-
-// --- Section Header ---
 
 // --- Filter Bar ---
 
@@ -310,54 +394,48 @@ class _FiltroChip extends StatelessWidget {
 
 class _AlunoItem extends StatelessWidget {
   final BoletoAluno aluno;
+  final VoidCallback onTap;
 
-  const _AlunoItem({required this.aluno});
+  const _AlunoItem({required this.aluno, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  aluno.data,
-                  style: const TextStyle(color: Colors.white38, fontSize: 11),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  aluno.nomeAluno,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    aluno.data,
+                    style: const TextStyle(color: Colors.white38, fontSize: 11),
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF162030),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              aluno.universidade,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+                  const SizedBox(height: 4),
+                  Text(
+                    aluno.nomeAluno,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+            const Icon(
+              Icons.chevron_right,
+              color: Colors.white38,
+              size: 20,
+            ),
+          ],
+        ),
       ),
     );
   }
