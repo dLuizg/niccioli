@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:niccioli/navigation/role_navigation_shell.dart';
 import 'package:niccioli/screens/login/cadastro_screen.dart';
@@ -14,8 +16,77 @@ class LoginScreen extends StatelessWidget {
   }
 }
 
-class _LoginCard extends StatelessWidget {
+class _LoginCard extends StatefulWidget {
   const _LoginCard();
+
+  @override
+  State<_LoginCard> createState() => _LoginCardState();
+}
+
+class _LoginCardState extends State<_LoginCard> {
+  final _emailController = TextEditingController();
+  final _senhaController = TextEditingController();
+  bool _carregando = false;
+  String? _erro;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _senhaController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _entrar() async {
+    final email = _emailController.text.trim();
+    final senha = _senhaController.text.trim();
+
+    if (email.isEmpty || senha.isEmpty) {
+      setState(() => _erro = 'Preencha e-mail e senha.');
+      return;
+    }
+
+    setState(() {
+      _carregando = true;
+      _erro = null;
+    });
+
+    try {
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: senha,
+      );
+
+      final uid = credential.user!.uid;
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+
+      final role = doc.data()?['role'] as String? ?? 'aluno';
+      final appRole = role == 'motorista'
+          ? AppUserRole.motorista
+          : AppUserRole.aluno;
+
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => RoleNavigationShell(role: appRole)),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _erro = switch (e.code) {
+          'user-not-found' ||
+          'wrong-password' ||
+          'invalid-credential' => 'E-mail ou senha incorretos.',
+          'invalid-email' => 'E-mail inválido.',
+          'too-many-requests' => 'Muitas tentativas. Tente mais tarde.',
+          _ => 'Erro ao entrar. Tente novamente.',
+        };
+      });
+    } finally {
+      if (mounted) setState(() => _carregando = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,20 +100,31 @@ class _LoginCard extends StatelessWidget {
           subtitleSize: 15,
         ),
         const SizedBox(height: 34),
-        const AppTextField(hintText: 'Digite seu e-mail...'),
+        AppTextField(
+          hintText: 'Digite seu e-mail...',
+          controller: _emailController,
+          keyboardType: TextInputType.emailAddress,
+          textInputAction: TextInputAction.next,
+        ),
         const SizedBox(height: 16),
-        const AppTextField(hintText: 'Digite sua senha...', obscureText: true),
+        AppTextField(
+          hintText: 'Digite sua senha...',
+          obscureText: true,
+          controller: _senhaController,
+          textInputAction: TextInputAction.done,
+        ),
+        if (_erro != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            _erro!,
+            style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+            textAlign: TextAlign.center,
+          ),
+        ],
         const SizedBox(height: 34),
         AppFilledButton(
-          label: 'Entrar',
-          onPressed: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (_) =>
-                    const RoleNavigationShell(role: AppUserRole.aluno),
-              ),
-            );
-          },
+          label: _carregando ? 'Entrando...' : 'Entrar',
+          onPressed: _carregando ? () {} : _entrar,
         ),
         const SizedBox(height: 14),
         AppOutlinedButton(
