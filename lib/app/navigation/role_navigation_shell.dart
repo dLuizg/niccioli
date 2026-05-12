@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:niccioli/app/models/app_user_profile.dart';
 import 'package:niccioli/app/pages/perfil/profile_screen.dart';
 import '../pages/contrato_aluno/contrato_aluno.dart';
+import '../pages/contrato_motorista/contrato_motorista.dart';
 import '../pages/financeiro/financeiro_screen.dart';
 import '../pages/home_aluno/home_aluno.dart';
 import '../pages/mapa/mapa_screen.dart';
@@ -74,8 +75,6 @@ class _RoleNavigationShellState extends State<RoleNavigationShell> {
   }
 
   static List<_NavigationDestinationData> _buildDestinations(AppUserRole role) {
-    final secondTabLabel = role == AppUserRole.aluno ? 'Contrato' : 'Lista';
-
     return [
       _NavigationDestinationData(
         screen: role == AppUserRole.aluno
@@ -85,7 +84,7 @@ class _RoleNavigationShellState extends State<RoleNavigationShell> {
       _NavigationDestinationData(
         screen: role == AppUserRole.aluno
             ? const ContratoAluno()
-            : _PlaceholderTabScreen(title: secondTabLabel),
+            : const ContratoMotorista(),
       ),
       const _NavigationDestinationData(screen: HomeScreen()),
       const _NavigationDestinationData(screen: FinanceiroScreen()),
