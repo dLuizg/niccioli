@@ -20,13 +20,27 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  late final Future<AppUserProfile?> _profileFuture;
+  late Future<AppUserProfile?> _profileFuture;
   bool _isSigningOut = false;
 
   @override
   void initState() {
     super.initState();
     _profileFuture = AuthService.instance.loadCurrentUserProfile();
+  }
+
+  void _reloadProfile() {
+    setState(() {
+      _profileFuture = AuthService.instance.loadCurrentUserProfile();
+    });
+  }
+
+  ImageProvider? _avatarImageFor(AppUserProfile? profile) {
+    final photoUrl = profile?.photoUrl?.trim() ?? '';
+    if (photoUrl.isNotEmpty) {
+      return NetworkImage(photoUrl);
+    }
+    return widget.avatarImage;
   }
 
   Future<void> _signOut() async {
@@ -71,11 +85,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   );
                 }
 
+                final avatarImage = _avatarImageFor(profile);
+
                 return SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(18, 70, 18, 120),
                   child: Column(
                     children: [
-                      _ProfileAvatar(image: widget.avatarImage),
+                      _ProfileAvatar(image: avatarImage),
                       const SizedBox(height: 20),
                       Text(
                         profile?.name.isNotEmpty == true
@@ -103,6 +119,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         icon: Icons.account_circle_outlined,
                         label: 'Conta',
                         routeName: ProfileScreen.accountRoute,
+                        onReturn: _reloadProfile,
                       ),
                       _ProfileMenuItem(
                         icon: Icons.key_outlined,
@@ -169,18 +186,23 @@ class _ProfileMenuItem extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.routeName,
+    this.onReturn,
   });
 
   final IconData icon;
   final String label;
   final String routeName;
+  final VoidCallback? onReturn;
 
   @override
   Widget build(BuildContext context) {
     return _ProfileListItem(
       icon: icon,
       label: label,
-      onTap: () => Navigator.of(context).pushNamed(routeName),
+      onTap: () async {
+        await Navigator.of(context).pushNamed(routeName);
+        onReturn?.call();
+      },
     );
   }
 }
