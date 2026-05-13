@@ -86,13 +86,24 @@ class _FinanceiroScreenState extends State<FinanceiroScreen> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return const Stream.empty();
 
+    final now = DateTime.now();
+    final limiteAtual = DateTime(now.year, now.month);
+
     return FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('parcelas')
         .orderBy('mes')
         .snapshots()
-        .map((snap) => snap.docs.map(Parcela.fromFirestore).toList());
+        .map((snap) => snap.docs
+            .map(Parcela.fromFirestore)
+            .where((p) {
+              final partes = p.data.split('/');
+              if (partes.length != 3) return true;
+              final mes = DateTime(int.parse(partes[2]), int.parse(partes[1]));
+              return !mes.isAfter(limiteAtual);
+            })
+            .toList());
   }
 
   @override
