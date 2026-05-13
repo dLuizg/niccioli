@@ -10,7 +10,8 @@ import 'package:niccioli/app/views/widgets/status_badge.dart';
 class _MesInfo {
   final StatusBoleto status;
   final String? comprovanteUrl;
-  const _MesInfo({required this.status, this.comprovanteUrl});
+  final DocumentReference? parcelaRef;
+  const _MesInfo({required this.status, this.comprovanteUrl, this.parcelaRef});
 }
 
 // --- Screen ---
@@ -86,6 +87,7 @@ class _BoletoDetalheScreenState extends State<BoletoDetalheScreen> {
             result[mesKey] = _MesInfo(
               status: pago ? StatusBoleto.pago : statusFallback,
               comprovanteUrl: comprovanteUrl,
+              parcelaRef: doc.reference,
             );
           }
 
@@ -122,6 +124,49 @@ class _BoletoDetalheScreenState extends State<BoletoDetalheScreen> {
   String _monthKey(int month) {
     final year = DateTime.now().year;
     return '$year-${month.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _contestarComprovante(
+    BuildContext context,
+    DocumentReference ref,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF162030),
+        title: const Text(
+          'Contestar comprovante',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'O comprovante será rejeitado e o aluno precisará enviar um novo.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Contestar',
+              style: TextStyle(color: Color(0xFFE53935)),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await ref.update({
+        'pago': false,
+        'comprovante_url': FieldValue.delete(),
+        'comprovante_contestado': true,
+      });
+    }
   }
 
   // Pago sempre respeita. Para meses já passados não pagos → vencido.
@@ -212,6 +257,11 @@ class _BoletoDetalheScreenState extends State<BoletoDetalheScreen> {
                             status: status,
                             badgeType: _toBadgeType(status),
                             comprovanteUrl: info?.comprovanteUrl,
+                            onContestar: info?.parcelaRef != null &&
+                                    info?.comprovanteUrl != null
+                                ? () => _contestarComprovante(
+                                    context, info!.parcelaRef!)
+                                : null,
                           );
                         },
                       ),
@@ -328,6 +378,7 @@ class _MesAccordion extends StatelessWidget {
   final StatusBoleto status;
   final StatusBadgeType badgeType;
   final String? comprovanteUrl;
+  final VoidCallback? onContestar;
 
   const _MesAccordion({
     required this.nomeMes,
@@ -335,6 +386,7 @@ class _MesAccordion extends StatelessWidget {
     required this.status,
     required this.badgeType,
     this.comprovanteUrl,
+    this.onContestar,
   });
 
   @override
@@ -410,6 +462,38 @@ class _MesAccordion extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             _ComprovanteRow(comprovanteUrl: comprovanteUrl),
+            if (onContestar != null) ...[
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: onContestar,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE53935).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: const Color(0xFFE53935).withValues(alpha: 0.4)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.cancel_outlined,
+                          color: Color(0xFFE53935), size: 16),
+                      SizedBox(width: 8),
+                      Text(
+                        'Contestar comprovante',
+                        style: TextStyle(
+                          color: Color(0xFFE53935),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

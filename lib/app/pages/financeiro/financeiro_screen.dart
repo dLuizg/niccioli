@@ -18,6 +18,7 @@ class Parcela {
   final double valor;
   final bool pago;
   final String? comprovanteUrl;
+  final bool contestado;
 
   const Parcela({
     required this.id,
@@ -27,6 +28,7 @@ class Parcela {
     required this.valor,
     this.pago = false,
     this.comprovanteUrl,
+    this.contestado = false,
   });
 
   factory Parcela.fromFirestore(DocumentSnapshot doc) {
@@ -39,6 +41,7 @@ class Parcela {
       valor: (map['valor'] as num).toDouble(),
       pago: (map['pago'] as bool?) ?? false,
       comprovanteUrl: map['comprovante_url'] as String?,
+      contestado: (map['comprovante_contestado'] as bool?) ?? false,
     );
   }
 
@@ -358,36 +361,49 @@ class _BotaoComprovante extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final jaEnviou = parcela.comprovanteEnviado;
+    final rejeitado = parcela.contestado && !jaEnviou;
+
+    final Color cor = rejeitado
+        ? const Color(0xFFE53935)
+        : jaEnviou
+            ? Colors.white38
+            : AppColors.orange;
+
+    final IconData icone = rejeitado
+        ? Icons.warning_amber_rounded
+        : jaEnviou
+            ? Icons.check_circle_outline
+            : Icons.upload_file_outlined;
+
+    final String label = rejeitado
+        ? 'Rejeitado — reenviar'
+        : jaEnviou
+            ? 'Comprovante enviado'
+            : 'Enviar comprovante';
 
     return GestureDetector(
       onTap: () => _onTap(context),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: jaEnviou
-              ? Colors.white.withValues(alpha: 0.05)
-              : AppColors.orange.withValues(alpha: 0.15),
+          color: rejeitado
+              ? const Color(0xFFE53935).withValues(alpha: 0.10)
+              : jaEnviou
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : AppColors.orange.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: jaEnviou ? Colors.white24 : AppColors.orange,
-          ),
+          border: Border.all(color: cor.withValues(alpha: rejeitado ? 0.6 : 1)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              jaEnviou
-                  ? Icons.check_circle_outline
-                  : Icons.upload_file_outlined,
-              size: 13,
-              color: jaEnviou ? Colors.white38 : AppColors.orange,
-            ),
+            Icon(icone, size: 13, color: cor),
             const SizedBox(width: 4),
             Text(
-              jaEnviou ? 'Comprovante enviado' : 'Enviar comprovante',
+              label,
               style: TextStyle(
                 fontSize: 11,
-                color: jaEnviou ? Colors.white38 : AppColors.orange,
+                color: cor,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -484,6 +500,7 @@ class _ComprovanteBottomSheetState extends State<_ComprovanteBottomSheet> {
       await widget.parcela.ref.update({
         'comprovante_url': url,
         'pago': true,
+        'comprovante_contestado': false,
       });
 
       if (mounted) Navigator.pop(context);
