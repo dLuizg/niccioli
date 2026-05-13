@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../screens/home_aluno/home_aluno.dart';
-import '../screens/contrato_aluno/contrato_aluno.dart';
+import '../pages/home_aluno/home_aluno.dart';
+import '../pages/contrato_aluno/contrato_aluno.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../theme/app_colors.dart';
 

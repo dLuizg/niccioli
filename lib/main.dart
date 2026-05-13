@@ -1,13 +1,13 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:niccioli/app/screens/notification/notification_screen.dart';
-import 'package:niccioli/app/screens/perfil/account/account_screen.dart';
-import 'package:niccioli/app/screens/perfil/privacy_and_police/privacy_and_policy_screen.dart';
-import 'package:niccioli/app/screens/perfil/profile_screen.dart';
-import 'package:niccioli/app/screens/perfil/security/security_screen.dart';
-import 'package:niccioli/app/screens/perfil/support/support_screen.dart';
-import 'package:niccioli/app/screens/splash_screen/splash_screen.dart';
+import 'package:niccioli/app/pages/notification/notification_screen.dart';
+import 'package:niccioli/app/pages/perfil/account/account_screen.dart';
+import 'package:niccioli/app/pages/perfil/privacy_and_police/privacy_and_policy_screen.dart';
+import 'package:niccioli/app/pages/perfil/profile_screen.dart';
+import 'package:niccioli/app/pages/perfil/security/security_screen.dart';
+import 'package:niccioli/app/pages/perfil/support/support_screen.dart';
+import 'package:niccioli/app/pages/splash_screen/splash_screen.dart';
 import 'app/firebase_options.dart';
 import 'app/theme/app_colors.dart';
 
