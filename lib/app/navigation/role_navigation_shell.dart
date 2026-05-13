@@ -79,7 +79,7 @@ class _RoleNavigationShellState extends State<RoleNavigationShell> {
       _NavigationDestinationData(
         screen: role == AppUserRole.aluno
             ? const HomeAluno()
-            : const _PlaceholderTabScreen(title: 'Home Motorista'),
+            : const HomeMotorista(),
       ),
       _NavigationDestinationData(
         screen: role == AppUserRole.aluno
