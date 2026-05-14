@@ -4,6 +4,7 @@ import 'package:niccioli/app/pages/perfil/profile_screen.dart';
 import '../pages/contrato_aluno/contrato_aluno.dart';
 import '../pages/contrato_motorista/contrato_motorista.dart';
 import '../pages/financeiro/financeiro_screen.dart';
+import '../pages/financeiro/financeiro_motorista_screen.dart';
 import '../pages/home_aluno/home_aluno.dart';
 import '../pages/mapa/mapa_screen.dart';
 import '../theme/app_colors.dart';
@@ -87,7 +88,11 @@ class _RoleNavigationShellState extends State<RoleNavigationShell> {
             : const ContratoMotorista(),
       ),
       const _NavigationDestinationData(screen: HomeScreen()),
-      const _NavigationDestinationData(screen: FinanceiroScreen()),
+      _NavigationDestinationData(
+        screen: role == AppUserRole.aluno
+            ? const FinanceiroScreen()
+            : const FinanceiroMotoristaScreen(),
+      ),
       const _NavigationDestinationData(screen: ProfileScreen()),
     ];
   }
