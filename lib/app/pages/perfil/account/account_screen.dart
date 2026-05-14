@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:niccioli/app/models/app_user_profile.dart';
 import 'package:niccioli/app/models/transport_profile.dart';
 import 'package:niccioli/app/pages/perfil/profile_detail_layout.dart';
@@ -130,6 +131,39 @@ class _AccountScreenState extends State<AccountScreen> {
     if (mounted) {
       await _reloadProfile();
     }
+  }
+
+  Future<void> _pickProfilePhoto() async {
+    if (_isSaving) {
+      return;
+    }
+
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp'],
+      withData: false,
+    );
+
+    if (!mounted || result == null) {
+      return;
+    }
+
+    final file = result.files.single;
+    final path = file.path;
+    if (path == null) {
+      setState(() {
+        _errorMessage = 'Nao foi possivel acessar a imagem selecionada.';
+      });
+      return;
+    }
+
+    await _saveProfileChange(
+      () => AuthService.instance.updateCurrentUserProfilePhoto(
+        filePath: path,
+        fileName: file.name,
+        fileSize: file.size,
+      ),
+    );
   }
 
   Future<void> _saveProfileChange(Future<void> Function() action) async {
@@ -379,6 +413,7 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
             onManageInstitutions: () => _manageInstitutions(profile),
             onManageStudents: _openStudentManager,
+            onEditPhoto: _pickProfilePhoto,
             onAddAlternatePoint: _addAlternatePoint,
             onEditAlternatePoint: _editAlternatePoint,
             onDeleteAlternatePoint: _deleteAlternatePoint,
@@ -407,6 +442,7 @@ class _AccountContent extends StatelessWidget {
     required this.onEditDefaultListDeadline,
     required this.onManageInstitutions,
     required this.onManageStudents,
+    required this.onEditPhoto,
     required this.onAddAlternatePoint,
     required this.onEditAlternatePoint,
     required this.onDeleteAlternatePoint,
@@ -428,6 +464,7 @@ class _AccountContent extends StatelessWidget {
   final VoidCallback onEditDefaultListDeadline;
   final VoidCallback onManageInstitutions;
   final VoidCallback onManageStudents;
+  final VoidCallback onEditPhoto;
   final VoidCallback onAddAlternatePoint;
   final ValueChanged<int> onEditAlternatePoint;
   final ValueChanged<int> onDeleteAlternatePoint;
@@ -448,15 +485,27 @@ class _AccountContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 28),
-        const Center(child: _AccountAvatar()),
+        Center(
+          child: _AccountAvatar(photoUrl: profile.photoUrl, onTap: onEditPhoto),
+        ),
         const SizedBox(height: 8),
         Center(
-          child: Text(
-            'Foto do perfil indisponivel',
-            style: TextStyle(
-              color: AppColors.white.withValues(alpha: 0.72),
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
+          child: TextButton.icon(
+            onPressed: isSaving ? null : onEditPhoto,
+            icon: const Icon(Icons.photo_camera_outlined, size: 15),
+            label: Text(
+              profile.photoUrl?.trim().isNotEmpty == true
+                  ? 'Alterar foto do perfil'
+                  : 'Adicionar foto do perfil',
+            ),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.white.withValues(alpha: 0.78),
+              textStyle: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              ),
+              visualDensity: VisualDensity.compact,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           ),
         ),
@@ -1250,19 +1299,53 @@ class _StudentListTile extends StatelessWidget {
 }
 
 class _AccountAvatar extends StatelessWidget {
-  const _AccountAvatar();
+  const _AccountAvatar({required this.photoUrl, required this.onTap});
+
+  final String? photoUrl;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 112,
-      height: 112,
-      padding: const EdgeInsets.all(4),
-      decoration: const BoxDecoration(
-        color: AppColors.orange,
-        shape: BoxShape.circle,
+    final imageUrl = photoUrl?.trim() ?? '';
+    final image = imageUrl.isEmpty ? null : NetworkImage(imageUrl);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 112,
+            height: 112,
+            padding: const EdgeInsets.all(4),
+            decoration: const BoxDecoration(
+              color: AppColors.orange,
+              shape: BoxShape.circle,
+            ),
+            child: CircleAvatar(
+              backgroundColor: const Color(0xFFD6D6D6),
+              backgroundImage: image,
+            ),
+          ),
+          Positioned(
+            right: 2,
+            bottom: 4,
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: const BoxDecoration(
+                color: AppColors.navBackground,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.photo_camera_outlined,
+                color: AppColors.white,
+                size: 17,
+              ),
+            ),
+          ),
+        ],
       ),
-      child: const CircleAvatar(backgroundColor: Color(0xFFD6D6D6)),
     );
   }
 }

@@ -158,26 +158,29 @@ class AppDualFilledButton extends StatelessWidget {
   }
 }
 
-// Botão com borda laranja e fundo transparente — ex: AppOutlinedButton(label: 'Cadastrar', onPressed: () {})
+// Botão com borda laranja (padrão) ou cor customizada e fundo transparente
 class AppOutlinedButton extends StatelessWidget {
   const AppOutlinedButton({
     super.key,
     required this.label,
     required this.onPressed,
+    this.borderColor,
   });
 
   final String label;
   final VoidCallback? onPressed;
+  final Color? borderColor;
 
   @override
   Widget build(BuildContext context) {
+    final color = borderColor ?? AppColors.orange;
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.white,
-          side: const BorderSide(color: AppColors.orange, width: 2.5),
+          side: BorderSide(color: color, width: 2.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),

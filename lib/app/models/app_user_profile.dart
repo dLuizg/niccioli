@@ -51,6 +51,9 @@ class AppUserProfile {
     this.studentUids = const [],
     this.driverUid,
     this.defaultListDeadline,
+    this.photoUrl,
+    this.photoPath,
+    this.photoUpdatedAt,
   });
 
   final String uid;
@@ -69,6 +72,9 @@ class AppUserProfile {
   final List<String> studentUids;
   final String? driverUid;
   final String? defaultListDeadline;
+  final String? photoUrl;
+  final String? photoPath;
+  final DateTime? photoUpdatedAt;
 
   String get profileLabel => '${role.displayLabel} - Niccioli';
 
@@ -107,6 +113,9 @@ class AppUserProfile {
           const [],
       driverUid: data['driverUid'] as String?,
       defaultListDeadline: data['defaultListDeadline'] as String?,
+      photoUrl: data['photoUrl'] as String?,
+      photoPath: data['photoPath'] as String?,
+      photoUpdatedAt: (data['photoUpdatedAt'] as Timestamp?)?.toDate(),
     );
   }
 

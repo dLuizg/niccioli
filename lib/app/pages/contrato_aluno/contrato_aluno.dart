@@ -1,30 +1,16 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import '../../theme/app_colors.dart';
-// ignore: unused_import — importado para uso futuro na tela de contrato
-import '../../widgets/app_button.dart';
-import '../../widgets/contrato/exportar_contrato.dart';
-import '../../views/widgets/status_badge.dart';
+import 'package:niccioli/app/models/contract.dart';
+import 'package:niccioli/app/models/transport_profile.dart';
+import 'package:niccioli/app/services/auth_service.dart';
+import 'package:niccioli/app/services/contract_service.dart';
+import 'package:niccioli/app/services/transport_service.dart';
+import 'package:niccioli/app/theme/app_colors.dart';
+import 'package:niccioli/app/views/widgets/status_badge.dart';
+import 'package:niccioli/app/widgets/app_button.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-// Vista ativa dentro da tela de contratos
 enum _Vista { lista, detalhe }
-
-// Status possíveis de um contrato
-enum _StatusContrato { aguardando, assinado, expirado }
-
-// Modelo de dados de um contrato (mock)
-class _Contrato {
-  final String titulo;
-  final String rota;
-  final String dataEmissao;
-  final _StatusContrato status;
-
-  const _Contrato({
-    required this.titulo,
-    required this.rota,
-    required this.dataEmissao,
-    required this.status,
-  });
-}
 
 class ContratoAluno extends StatefulWidget {
   const ContratoAluno({super.key});
@@ -35,36 +21,73 @@ class ContratoAluno extends StatefulWidget {
 
 class _ContratoAlunoState extends State<ContratoAluno> {
   _Vista _vista = _Vista.lista;
-  int _contratoSelecionado = 0;
+  Contract? _selected;
+  TransportProfile? _transport;
+  List<Contract> _contracts = const [];
+  bool _isLoading = true;
+  String? _error;
+  bool _isUploading = false;
+  ContractStatus? _activeFilter;
 
-  // Dados mock — serão substituídos pela integração com backend
-  final List<_Contrato> _contratos = const [
-    _Contrato(
-      titulo: 'Contrato de Transporte Escolar 2025',
-      rota: 'Facul. Est. Jair Messias * Rota SJ Boa Vista',
-      dataEmissao: 'Emitido: 15 jan 2025',
-      status: _StatusContrato.aguardando,
-    ),
-    _Contrato(
-      titulo: 'Contrato de Transporte Escolar 2024',
-      rota: 'Facul. Est. Jair Messias * Rota SJ Boa Vista',
-      dataEmissao: 'Emitido: 15 jan 2025',
-      status: _StatusContrato.assinado,
-    ),
-    _Contrato(
-      titulo: 'Contrato de Transporte Escolar 2023',
-      rota: 'Facul. Est. Jair Messias * Rota SJ Boa Vista',
-      dataEmissao: 'Emitido: 15 jan 2025',
-      status: _StatusContrato.expirado,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
 
-  // Contadores calculados a partir dos dados
-  int get _totalAguardando =>
-      _contratos.where((c) => c.status == _StatusContrato.aguardando).length;
-  int get _totalAssinados =>
-      _contratos.where((c) => c.status == _StatusContrato.assinado).length;
-  int get _total => _contratos.length;
+  Future<void> _load() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final transport =
+          await TransportService.instance.loadCurrentStudentTransport();
+      if (!mounted) return;
+      if (transport == null) {
+        setState(() {
+          _transport = null;
+          _contracts = const [];
+          _isLoading = false;
+        });
+        return;
+      }
+      final uid = AuthService.instance.currentUser?.uid ?? '';
+      final contracts =
+          await ContractService.instance.listContracts(transport.id, uid);
+      if (mounted) {
+        setState(() {
+          _transport = transport;
+          _contracts = contracts;
+          _isLoading = false;
+        });
+      }
+    } on ContractFailure catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.message;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  int get _totalPendentes =>
+      _contracts.where((c) => c.status == ContractStatus.pending).length;
+  int get _totalAprovados =>
+      _contracts.where((c) => c.status == ContractStatus.approved).length;
+
+  List<Contract> get _filtered {
+    if (_activeFilter == null) return _contracts;
+    return _contracts.where((c) => c.status == _activeFilter).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,86 +97,202 @@ class _ContratoAlunoState extends State<ContratoAluno> {
     );
   }
 
-  // ─── VISTA: LISTA DE CONTRATOS ────────────────────────────────────────────
+  // ─── LISTA ──────────────────────────────────────────────────────────────────
 
   Widget _buildLista() {
     return SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildListaHeader(),
+          _buildFilterChips(),
+          const Divider(
+            color: Colors.white12,
+            thickness: 1,
+            height: 1,
+          ),
+          Expanded(child: _buildListaBody()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildListaHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Consultar Contratos',
+                style: TextStyle(
+                  color: AppColors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Acompanhe seus contratos de transporte',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          _buildSino(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChips() {
+    final options = <ContractStatus?>[null, ContractStatus.approved, ContractStatus.pending, ContractStatus.cancelled];
+    final labels = ['Todos', 'Assinado', 'Pendentes', 'Cancelados'];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header com nome do aluno e sino
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Olá, Jair',
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Acompanhe seus contratos de transporte',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: List.generate(options.length, (i) {
+            final isActive = _activeFilter == options[i];
+            return GestureDetector(
+              onTap: () => setState(() => _activeFilter = options[i]),
+              child: Container(
+                margin: const EdgeInsets.only(right: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+                decoration: BoxDecoration(
+                  color: isActive ? AppColors.orange : const Color(0xFF0D1F3C),
+                  borderRadius: BorderRadius.circular(999),
                 ),
-                _buildSino(),
-              ],
-            ),
-            const SizedBox(height: 24),
-            // Cards de estatísticas
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard('$_totalAguardando', 'Aguardando\nAssinatura'),
+                child: Text(
+                  labels[i],
+                  style: TextStyle(
+                    color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.7),
+                    fontSize: 14,
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                  ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildStatCard('$_totalAssinados', 'Assinados'),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildStatCard('$_total', 'Total de\nContratos'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 28),
-            // Seção: aguardando assinatura
-            if (_totalAguardando > 0) ...[
-              _buildSectionLabel('AGUARDANDO ASSINATURA'),
-              const SizedBox(height: 12),
-              ..._contratos
-                  .where((c) => c.status == _StatusContrato.aguardando)
-                  .map((c) => _buildContratoCard(c)),
-              const SizedBox(height: 24),
-            ],
-            // Seção: assinados e expirados
-            if (_totalAssinados > 0 ||
-                _contratos.any((c) => c.status == _StatusContrato.expirado)) ...[
-              _buildSectionLabel('ASSINADOS'),
-              const SizedBox(height: 12),
-              ..._contratos
-                  .where((c) => c.status != _StatusContrato.aguardando)
-                  .map((c) => _buildContratoCard(c)),
-            ],
-          ],
+              ),
+            );
+          }),
         ),
       ),
     );
   }
 
-  // Card de estatística individual
+  Widget _buildListaBody() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.orange),
+      );
+    }
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _error!,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.6),
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: _load,
+              child: const Text(
+                'Tentar novamente',
+                style: TextStyle(color: AppColors.orange),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    if (_transport == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.directions_bus_outlined,
+              color: Colors.white.withValues(alpha: 0.2),
+              size: 64,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Nenhum transporte vinculado',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 15,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    final contracts = _filtered;
+
+    if (contracts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.description_outlined,
+              color: Colors.white.withValues(alpha: 0.2),
+              size: 64,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _activeFilter != null
+                  ? 'Nenhum contrato nesta categoria'
+                  : 'Nenhum contrato disponível',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_activeFilter == null) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard('$_totalPendentes', 'Aguardando\nAssinatura'),
+                ),
+                const SizedBox(width: 10),
+                Expanded(child: _buildStatCard('$_totalAprovados', 'Assinados')),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildStatCard('${_contracts.length}', 'Total de\nContratos'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+          ],
+          ...contracts.map((c) => _buildCard(c)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStatCard(String numero, String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
@@ -186,29 +325,12 @@ class _ContratoAlunoState extends State<ContratoAluno> {
     );
   }
 
-  // Label de seção em caixa alta
-  Widget _buildSectionLabel(String texto) {
-    return Text(
-      texto,
-      style: TextStyle(
-        color: Colors.white.withValues(alpha: 0.5),
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 1.2,
-      ),
-    );
-  }
-
-  // Card de contrato na lista
-  Widget _buildContratoCard(_Contrato contrato) {
+  Widget _buildCard(Contract c) {
     return GestureDetector(
-      onTap: () {
-        final idx = _contratos.indexOf(contrato);
-        setState(() {
-          _contratoSelecionado = idx;
-          _vista = _Vista.detalhe;
-        });
-      },
+      onTap: () => setState(() {
+        _selected = c;
+        _vista = _Vista.detalhe;
+      }),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
@@ -218,25 +340,24 @@ class _ContratoAlunoState extends State<ContratoAluno> {
         ),
         child: Row(
           children: [
-            // Ícone do contrato
-            _buildIconeContrato(contrato.status),
+            _buildIcone(c.status),
             const SizedBox(width: 12),
-            // Informações
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    contrato.titulo,
+                    c.fileName,
                     style: const TextStyle(
                       color: AppColors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    contrato.rota,
+                    '${_formatDate(c.startDate)} — ${_formatDate(c.endDate)}',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.5),
                       fontSize: 11,
@@ -244,7 +365,7 @@ class _ContratoAlunoState extends State<ContratoAluno> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    contrato.dataEmissao,
+                    'R\$ ${c.monthlyValue.toStringAsFixed(2).replaceAll('.', ',')}  •  venc. dia ${c.paymentDay}',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.35),
                       fontSize: 10,
@@ -254,99 +375,87 @@ class _ContratoAlunoState extends State<ContratoAluno> {
               ),
             ),
             const SizedBox(width: 8),
-            // Badge / botão de status
-            _buildStatusContrato(contrato.status),
+            _buildBadge(c.status),
           ],
         ),
       ),
     );
   }
 
-  // Ícone colorido à esquerda do card
-  Widget _buildIconeContrato(_StatusContrato status) {
-    final isAguardando = status == _StatusContrato.aguardando;
+  Widget _buildIcone(ContractStatus status) {
+    Color bg;
+    Color iconColor;
+    IconData icon;
+    switch (status) {
+      case ContractStatus.pending:
+        bg = AppColors.orange.withValues(alpha: 0.15);
+        iconColor = AppColors.orange;
+        icon = Icons.article_outlined;
+      case ContractStatus.approved:
+        bg = const Color(0xFF1D5E52);
+        iconColor = const Color(0xFF42E21E);
+        icon = Icons.check_circle_outline;
+      case ContractStatus.cancelled:
+        bg = const Color(0xFF6A3242);
+        iconColor = const Color(0xFFFF2B2B);
+        icon = Icons.cancel_outlined;
+    }
     return Container(
       width: 42,
       height: 42,
       decoration: BoxDecoration(
-        color: isAguardando
-            ? AppColors.orange.withValues(alpha: 0.15)
-            : const Color(0xFF1D5E52),
+        color: bg,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Icon(
-        isAguardando ? Icons.article_outlined : Icons.check_circle_outline,
-        color: isAguardando ? AppColors.orange : const Color(0xFF42E21E),
-        size: 22,
-      ),
+      child: Icon(icon, color: iconColor, size: 22),
     );
   }
 
-  // Badge de status à direita do card
-  Widget _buildStatusContrato(_StatusContrato status) {
+  Widget _buildBadge(ContractStatus status) {
+    StatusBadgeType type;
     switch (status) {
-      case _StatusContrato.aguardando:
-        // Botão "Assinar" laranja — ação de assinatura pendente
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.orange.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: AppColors.orange, width: 1),
-          ),
-          child: const Text(
-            '✦ Assinar',
-            style: TextStyle(
-              color: AppColors.orange,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        );
-      case _StatusContrato.assinado:
-        return StatusBadge(
-          status: StatusBadgeType.assinado,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          textStyle: const TextStyle(fontSize: 12),
-        );
-      case _StatusContrato.expirado:
-        return StatusBadge(
-          status: StatusBadgeType.vencido,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          textStyle: const TextStyle(fontSize: 12),
-          showDot: false,
-        );
+      case ContractStatus.pending:
+        type = StatusBadgeType.pendente;
+      case ContractStatus.approved:
+        type = StatusBadgeType.assinado;
+      case ContractStatus.cancelled:
+        type = StatusBadgeType.cancelado;
     }
+    return StatusBadge(
+      status: type,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      textStyle: const TextStyle(fontSize: 11),
+    );
   }
 
-  // ─── VISTA: DETALHE DO CONTRATO ───────────────────────────────────────────
+  // ─── DETALHE ─────────────────────────────────────────────────────────────────
 
   Widget _buildDetalhe() {
-    final contrato = _contratos[_contratoSelecionado];
-
+    final c = _selected!;
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header com botão de voltar e sino
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 GestureDetector(
                   onTap: () => setState(() => _vista = _Vista.lista),
-                  child: const Icon(Icons.arrow_back_ios,
-                      color: AppColors.white, size: 20),
+                  child: const Icon(
+                    Icons.arrow_back_ios,
+                    color: AppColors.white,
+                    size: 20,
+                  ),
                 ),
                 _buildSino(),
               ],
             ),
             const SizedBox(height: 20),
-            // Título e status do contrato
-            const Text(
-              'Contrato de Transporte',
-              style: TextStyle(
+            Text(
+              c.fileName,
+              style: const TextStyle(
                 color: AppColors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -355,60 +464,31 @@ class _ContratoAlunoState extends State<ContratoAluno> {
             const SizedBox(height: 8),
             Row(
               children: [
-                // Badge "Ativo"
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1D5E52),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF42E21E),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'Ativo',
-                        style: TextStyle(
-                          color: AppColors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildBadge(c.status),
                 const SizedBox(width: 10),
-                Text(
-                  'Vigência 15 jan 2025 - 15 jun 2025',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    fontSize: 12,
+                Flexible(
+                  child: Text(
+                    'Vigência ${_formatDate(c.startDate)} — ${_formatDate(c.endDate)}',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            // Card: Dados do contrato
-            _buildCardDados(),
+            _buildDetalheDados(c),
             const SizedBox(height: 16),
-            // Card: Assinatura e documentação
-            _buildCardAssinatura(contrato),
+            if (c.status == ContractStatus.pending) _buildDetalheAssinatura(c),
+            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  // Card com os dados do contrato
-  Widget _buildCardDados() {
+  Widget _buildDetalheDados(Contract c) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -419,38 +499,97 @@ class _ContratoAlunoState extends State<ContratoAluno> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCardSectionLabel('DADOS DO CONTRATO'),
+          _buildDetalheLabel('DADOS DO CONTRATO'),
           const SizedBox(height: 16),
-          // Linha 1: Estudante + RA
           Row(
             children: [
-              Expanded(child: _buildDadoItem('ESTUDANTE', 'Jair Messias Bolsonaro')),
-              Expanded(child: _buildDadoItem('RA', '200035-00')),
+              Expanded(child: _buildDadoItem('INÍCIO', _formatDate(c.startDate))),
+              Expanded(child: _buildDadoItem('FIM', _formatDate(c.endDate))),
             ],
           ),
           const SizedBox(height: 14),
-          // Linha 2: Instituição + Período
           Row(
             children: [
-              Expanded(child: _buildDadoItem('INSTITUIÇÃO', 'UNIFEOB')),
-              Expanded(child: _buildDadoItem('PERÍODO', 'Noturno - 19h00')),
+              Expanded(
+                child: _buildDadoItem(
+                  'MENSALIDADE',
+                  'R\$ ${c.monthlyValue.toStringAsFixed(2).replaceAll('.', ',')}',
+                ),
+              ),
+              Expanded(
+                child: _buildDadoItem('VENCIMENTO', 'Dia ${c.paymentDay}'),
+              ),
             ],
           ),
-          const SizedBox(height: 14),
-          // Linha 3: Rota + Motorista + Mensalidade
-          Row(
-            children: [
-              Expanded(child: _buildDadoItem('ROTA', 'Mogi Guaçu - Unifeob')),
-              Expanded(child: _buildDadoItem('MOTORISTA', 'Niccioli')),
-              Expanded(child: _buildDadoItem('MENSALIDADE', 'R\$ 309,00')),
-            ],
-          ),
+          if (c.observations != null && c.observations!.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _buildDadoItem('OBSERVAÇÕES', c.observations!),
+          ],
         ],
       ),
     );
   }
 
-  // Item individual de dado (label + valor)
+  Widget _buildDetalheAssinatura(Contract c) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D1F3C),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDetalheLabel('ASSINATURA'),
+          const SizedBox(height: 16),
+          Text(
+            '1. Baixe o contrato, assine via gov.br e envie o PDF assinado.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.6),
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 16),
+          AppOutlinedButton(
+            label: 'Baixar contrato',
+            onPressed: () => _launchUrl(c.fileUrl),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Divider(color: Colors.white12, thickness: 1),
+          ),
+          Text(
+            '2. Após assinar, envie o PDF assinado:',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.6),
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_isUploading) ...[
+            const LinearProgressIndicator(
+              backgroundColor: Color(0xFF091525),
+              color: AppColors.orange,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Enviando...',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 12,
+              ),
+            ),
+          ] else
+            AppFilledButton(
+              label: 'Enviar PDF assinado',
+              onPressed: () => _uploadSigned(c),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDadoItem(String label, String valor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -476,131 +615,7 @@ class _ContratoAlunoState extends State<ContratoAluno> {
     );
   }
 
-  // Card de assinatura e documentação
-  Widget _buildCardAssinatura(_Contrato contrato) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0D1F3C),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildCardSectionLabel('ASSINATURA E DOCUMENTAÇÃO'),
-          const SizedBox(height: 20),
-          // Passo 1: Exportar contrato em PDF (já concluído)
-          _buildPassoExportarPDF(),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 20),
-            child: Divider(color: Colors.white12, thickness: 1),
-          ),
-          // Passos 2 e 3: Assinar Gov.br + Anexar (widget reutilizável)
-          ExportarContrato(
-            onArquivoAnexado: (caminho) {
-              // Caminho do PDF assinado recebido para envio ao motorista
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Passo 1 — Exportar PDF (estado concluído)
-  Widget _buildPassoExportarPDF() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Ícone de concluído
-            Container(
-              width: 36,
-              height: 36,
-              decoration: const BoxDecoration(
-                color: Color(0xFF1D5E52),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.check,
-                color: Color(0xFF42E21E),
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 16),
-            const Text(
-              'Exportar contrato em PDF',
-              style: TextStyle(
-                color: AppColors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.only(left: 52),
-          child: Text(
-            'Baixe o documento para assinar digitalmente',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
-              fontSize: 13,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        // Botões de exportação
-        Padding(
-          padding: const EdgeInsets.only(left: 52),
-          child: Row(
-            children: [
-              // Badge de data de exportação
-              Flexible(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF091525),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    'Exportado * 02 jan 2026',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              // Botão de baixar novamente
-              GestureDetector(
-                onTap: () {},
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0D2A4A),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white24, width: 1),
-                  ),
-                  child: const Text(
-                    'Baixar novamente',
-                    style: TextStyle(color: AppColors.white, fontSize: 12),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Label de seção dentro dos cards
-  Widget _buildCardSectionLabel(String texto) {
+  Widget _buildDetalheLabel(String texto) {
     return Text(
       texto,
       style: TextStyle(
@@ -612,7 +627,79 @@ class _ContratoAlunoState extends State<ContratoAluno> {
     );
   }
 
-  // Sino de notificação reutilizado nos dois headers
+  Future<void> _uploadSigned(Contract contract) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    if (file.bytes == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível ler o arquivo. Tente novamente.'),
+            backgroundColor: Color(0xFF6A3242),
+          ),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isUploading = true);
+    try {
+      final transport = _transport!;
+      final uid = AuthService.instance.currentUser?.uid ?? '';
+      await ContractService.instance.uploadSignedPdf(
+        transportId: transport.id,
+        driverUid: transport.driverUid,
+        studentId: uid,
+        contractId: contract.id,
+        bytes: file.bytes!,
+        original: contract,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Contrato assinado enviado com sucesso!'),
+            backgroundColor: Color(0xFF1D5E52),
+          ),
+        );
+        setState(() {
+          _vista = _Vista.lista;
+          _selected = null;
+          _isUploading = false;
+        });
+        await _load();
+      }
+    } on ContractFailure catch (e) {
+      if (mounted) {
+        setState(() => _isUploading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: const Color(0xFF6A3242),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível abrir o arquivo.'),
+            backgroundColor: Color(0xFF6A3242),
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildSino() {
     return Container(
       width: 44,
@@ -630,5 +717,13 @@ class _ContratoAlunoState extends State<ContratoAluno> {
         size: 22,
       ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    const months = [
+      'jan', 'fev', 'mar', 'abr', 'mai', 'jun',
+      'jul', 'ago', 'set', 'out', 'nov', 'dez',
+    ];
+    return '${date.day.toString().padLeft(2, '0')} ${months[date.month - 1]} ${date.year}';
   }
 }
