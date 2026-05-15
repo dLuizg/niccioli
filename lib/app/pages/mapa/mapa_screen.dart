@@ -3,29 +3,10 @@ import 'package:niccioli/app/pages/notification/notification_screen.dart';
 import 'package:niccioli/app/views/widgets/data_badge.dart';
 import 'package:niccioli/app/views/widgets/notification_badge.dart';
 import 'package:niccioli/app/theme/app_colors.dart';
-import 'package:intl/date_symbol_data_local.dart';
 import 'package:niccioli/app/widgets/app_button.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('pt_BR', null);
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: const HomeScreen(),
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class MapaScreen extends StatelessWidget {
+  const MapaScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -58,7 +58,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
-    Navigator.of(context).pushAndRemoveUntil(
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
       (_) => false,
     );

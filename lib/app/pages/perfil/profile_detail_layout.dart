@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:niccioli/app/models/app_user_profile.dart';
-import 'package:niccioli/app/navigation/role_navigation_shell.dart';
-import 'package:niccioli/app/services/auth_service.dart';
 import 'package:niccioli/app/theme/app_colors.dart';
-import 'package:niccioli/app/widgets/app_bottom_nav.dart';
 
-class ProfileDetailScaffold extends StatefulWidget {
+class ProfileDetailScaffold extends StatelessWidget {
   const ProfileDetailScaffold({
     super.key,
     required this.child,
@@ -18,71 +14,6 @@ class ProfileDetailScaffold extends StatefulWidget {
   final EdgeInsets contentPadding;
 
   @override
-  State<ProfileDetailScaffold> createState() => _ProfileDetailScaffoldState();
-}
-
-class _ProfileDetailScaffoldState extends State<ProfileDetailScaffold> {
-  late final Future<AppUserProfile?> _profileFuture;
-  AppUserProfile? _profile;
-  bool _isNavigating = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _profileFuture = _loadProfile();
-  }
-
-  Future<AppUserProfile?> _loadProfile() async {
-    try {
-      final profile = await AuthService.instance.loadCurrentUserProfile();
-      if (mounted) {
-        setState(() {
-          _profile = profile;
-        });
-      } else {
-        _profile = profile;
-      }
-      return profile;
-    } on AuthFailure {
-      return null;
-    }
-  }
-
-  Future<void> _navigateToTab(int index) async {
-    if (_isNavigating) {
-      return;
-    }
-
-    setState(() {
-      _isNavigating = true;
-    });
-
-    final profile = _profile ?? await _profileFuture;
-
-    if (!mounted) {
-      return;
-    }
-
-    if (profile == null) {
-      setState(() {
-        _isNavigating = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nao foi possivel carregar seu perfil.')),
-      );
-      return;
-    }
-
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (_) =>
-            RoleNavigationShell(role: profile.role, initialIndex: index),
-      ),
-      (_) => false,
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -93,22 +24,15 @@ class _ProfileDetailScaffoldState extends State<ProfileDetailScaffold> {
             child: Scaffold(
               backgroundColor: AppColors.background,
               body: SingleChildScrollView(
-                padding: widget.contentPadding,
+                padding: contentPadding,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _ProfileDetailHeader(label: widget.headerLabel),
+                    _ProfileDetailHeader(label: headerLabel),
                     const SizedBox(height: 12),
-                    widget.child,
+                    child,
                   ],
                 ),
-              ),
-              bottomNavigationBar: AppBottomNav(
-                selectedIndex: 4,
-                onItemTapped: _navigateToTab,
-                secondItemLabel: _profile?.role == AppUserRole.motorista
-                    ? 'Lista'
-                    : 'Contrato',
               ),
             ),
           ),

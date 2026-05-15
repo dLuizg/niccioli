@@ -63,10 +63,11 @@ class _SplashScreenState extends State<SplashScreen>
         return;
       }
 
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (_) => RoleNavigationShell(role: profile.role),
         ),
+        (_) => false,
       );
     } on AuthFailure catch (error) {
       if (!mounted) {
@@ -82,8 +83,9 @@ class _SplashScreenState extends State<SplashScreen>
       return;
     }
 
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => LoginScreen(initialError: error)),
+      (_) => false,
     );
   }
 

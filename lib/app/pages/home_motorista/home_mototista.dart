@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:niccioli/app/models/transport_profile.dart'
     show TransportStudentSummary;
-import 'package:niccioli/app/screens/notification/notification_screen.dart';
+import 'package:niccioli/app/pages/notification/notification_screen.dart';
 import 'package:niccioli/app/services/auth_service.dart';
 import 'package:niccioli/app/services/transport_service.dart';
 import 'package:niccioli/app/views/widgets/notification_badge.dart';

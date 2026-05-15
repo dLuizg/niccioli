@@ -45,7 +45,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
         return;
       }
 
-      Navigator.of(context).pushAndRemoveUntil(
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (_) => RoleNavigationShell(role: profile.role),
         ),
