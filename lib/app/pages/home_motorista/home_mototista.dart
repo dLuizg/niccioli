@@ -10,6 +10,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/van/contador_badge.dart';
 import '../../views/widgets/data_badge.dart';
+import 'package:niccioli/screens/IA/chat_screen.dart';
 
 // Estados baseados em horário (mesmo padrão de home_aluno) + estados de rota:
 //
@@ -252,6 +253,14 @@ class _HomeMotoristaState extends State<HomeMotorista> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ChatScreen()),
+        ),
+        backgroundColor: AppColors.orange,
+        child: const Icon(Icons.smart_toy_rounded, color: Colors.white),
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

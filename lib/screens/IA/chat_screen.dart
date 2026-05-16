@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:niccioli/services/chat_service.dart';
-import 'package:niccioli/views/widgets/data_badge.dart';
-import 'package:niccioli/widgets/app_bottom_nav.dart';
+import 'package:niccioli/services/firebase_context_service.dart';
+import 'package:niccioli/app/views/widgets/data_badge.dart';
 
 const _bgDark = Color(0xFF0D1B2A);
 const _bgCard = Color(0xFF162236);
@@ -19,21 +19,39 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
-  int _navIndex = 2;
 
-  final List<ChatMessage> _history = [
-    const ChatMessage(
-      role: 'system',
-      content: 'Você é um assistente útil e objetivo. Responda em português.',
-    ),
-  ];
+  final List<ChatMessage> _history = [];
 
   String _streamBuffer = '';
   bool _loading = false;
+  bool _contextLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadContext();
+  }
+
+  Future<void> _loadContext() async {
+    final context = await FirebaseContextService.buildContext();
+    final systemContent = context.isEmpty
+        ? 'Você é um assistente útil e objetivo. Responda em português.'
+        : 'Você é um assistente útil e objetivo do app Niccioli. Responda em português.\n'
+            'Baseie suas respostas APENAS nos dados abaixo. Se a informação não estiver '
+            'nos dados, diga que não tem essa informação disponível.\n\n$context';
+    if (mounted) {
+      setState(() {
+        _history
+          ..clear()
+          ..add(ChatMessage(role: 'system', content: systemContent));
+        _contextLoaded = true;
+      });
+    }
+  }
 
   Future<void> _send() async {
     final text = _controller.text.trim();
-    if (text.isEmpty || _loading) return;
+    if (text.isEmpty || _loading || !_contextLoaded) return;
     _controller.clear();
 
     setState(() {
@@ -92,19 +110,28 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: _bgDark,
-      bottomNavigationBar: AppBottomNav(
-        selectedIndex: _navIndex,
-        onItemTapped: (index) => setState(() => _navIndex = index),
-      ),
+
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              padding: const EdgeInsets.fromLTRB(8, 16, 20, 0),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [const CabecalhoData()],
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: _textPrimary,
+                    ),
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  const SizedBox(width: 4),
+                  const CabecalhoData(),
+                ],
               ),
             ),
             const SizedBox(height: 34),
@@ -151,6 +178,15 @@ class _ChatScreenState extends State<ChatScreen> {
                           _MessageBubble(message: messages[i]),
                     ),
             ),
+            if (!_contextLoaded)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 6),
+                child: LinearProgressIndicator(
+                  minHeight: 2,
+                  color: _accent,
+                  backgroundColor: _bgCard,
+                ),
+              ),
             if (_loading && _streamBuffer.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
@@ -165,7 +201,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             _InputBar(
               controller: _controller,
-              loading: _loading,
+              loading: _loading || !_contextLoaded,
               onSend: _send,
             ),
           ],
